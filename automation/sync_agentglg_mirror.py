@@ -16,6 +16,7 @@ REPO_URL = "https://github.com/betonglg-ux/Agentglg.git"
 DEFAULT_BRANCH = "main"
 SKILL_PATH = Path("/root/.codex/skills/hermes/glavlab-protocol-review/SKILL.md")
 TOKEN_FILE_RELATIVE = Path("memory/agentglg-github-token.txt")
+PRIVATE_TOKEN_FILE_RELATIVE = Path("memory/automation/private/agentglg-github-token.txt")
 SYNC_STATE_FILE_RELATIVE = Path("memory/agentglg-sync-state.txt")
 WORKSPACE_EXCLUDE_TOP_LEVEL = {
     ".git",
@@ -286,6 +287,11 @@ def load_token(workspace: Path) -> str | None:
     env_token = os.getenv("AGENTGLG_GITHUB_TOKEN") or os.getenv("GITHUB_TOKEN")
     if env_token:
         return env_token.strip()
+    private_token_file = workspace / PRIVATE_TOKEN_FILE_RELATIVE
+    if private_token_file.exists():
+        token = private_token_file.read_text(encoding="utf-8").strip()
+        if token:
+            return token
     token_file = workspace / TOKEN_FILE_RELATIVE
     if token_file.exists():
         token = token_file.read_text(encoding="utf-8").strip()
@@ -485,7 +491,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     if manifest_src.exists():
         copy_file(manifest_src, repo_root / "github-mirror-manifest.md")
 
-    for rel_path in [TOKEN_FILE_RELATIVE, SYNC_STATE_FILE_RELATIVE]:
+    for rel_path in [TOKEN_FILE_RELATIVE, PRIVATE_TOKEN_FILE_RELATIVE, SYNC_STATE_FILE_RELATIVE]:
         mirrored = repo_root / rel_path
         if mirrored.exists():
             mirrored.unlink()
@@ -548,7 +554,8 @@ def main() -> int:
     elif not args.no_push:
         print(
             "Не найден токен GitHub. Задайте AGENTGLG_GITHUB_TOKEN/GITHUB_TOKEN "
-            f"или сохраните токен в {workspace / TOKEN_FILE_RELATIVE}.",
+            f"или сохраните токен в {workspace / PRIVATE_TOKEN_FILE_RELATIVE} "
+            f"или {workspace / TOKEN_FILE_RELATIVE}.",
             file=sys.stderr,
         )
         return 1
