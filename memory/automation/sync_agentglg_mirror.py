@@ -312,15 +312,34 @@ def ensure_git_auth(token: str) -> None:
     )
 
 
+def has_git_github_credentials() -> bool:
+    result = subprocess.run(
+        ["git", "credential", "fill"],
+        input="protocol=https\nhost=github.com\n\n",
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return False
+    output = result.stdout
+    return "username=" in output and "password=" in output
+
+
 def should_skip_workspace_relative(rel: Path) -> bool:
     parts = rel.parts
     if not parts:
         return False
+    rel_text = rel.as_posix()
     if parts[0] in WORKSPACE_EXCLUDE_TOP_LEVEL:
+        return True
+    if rel_text.startswith("memory/automation/private/"):
         return True
     if any(part in WORKSPACE_EXCLUDE_DIR_NAMES for part in parts[:-1]):
         return True
     if parts[-1] in WORKSPACE_EXCLUDE_FILE_NAMES:
+        return True
+    if parts[-1].startswith("agentglg-github-token"):
         return True
     return False
 
@@ -333,6 +352,19 @@ def list_workspace_paths(workspace: Path) -> list[Path]:
             continue
         paths.append(path)
     return paths
+
+
+def build_workspace_copy_ignore(workspace: Path):
+    def _ignore(dir_path: str, names: list[str]) -> set[str]:
+        current = Path(dir_path)
+        ignored: set[str] = set()
+        for name in names:
+            rel = (current / name).relative_to(workspace)
+            if should_skip_workspace_relative(rel):
+                ignored.add(name)
+        return ignored
+
+    return _ignore
 
 
 def iter_sync_inputs(workspace: Path) -> list[Path]:
@@ -380,6 +412,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     agent_dev_src = agent_files / "agent-development"
     agent_dev_dst = repo_root / "agent-development"
 
+    ignore_workspace = build_workspace_copy_ignore(workspace)
     tracked_top_level = set()
     for child in sorted(workspace.iterdir()):
         name = child.name
@@ -393,7 +426,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
             shutil.copytree(
                 child,
                 target,
-                ignore=shutil.ignore_patterns(*WORKSPACE_EXCLUDE_DIR_NAMES, *WORKSPACE_EXCLUDE_FILE_NAMES),
+                ignore=ignore_workspace,
             )
         else:
             copy_file(child, target)
@@ -551,6 +584,8 @@ def main() -> int:
     token = load_token(workspace)
     if token:
         ensure_git_auth(token)
+    elif has_git_github_credentials():
+        pass
     elif not args.no_push:
         print(
             "Не найден токен GitHub. Задайте AGENTGLG_GITHUB_TOKEN/GITHUB_TOKEN "
