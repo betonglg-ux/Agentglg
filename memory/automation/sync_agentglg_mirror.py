@@ -183,6 +183,8 @@ def list_memory_markdown_files(memory_dir: Path) -> list[Path]:
         rel = path.relative_to(memory_dir).as_posix()
         if rel.startswith(".git/") or rel.startswith(".arcade/"):
             continue
+        if rel.startswith("snapshots/"):
+            continue
         files.append(path)
     return files
 
