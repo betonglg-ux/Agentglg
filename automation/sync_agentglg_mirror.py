@@ -316,6 +316,40 @@ def build_memory_sync_status(memory_dir: Path) -> str:
     return "\n".join(lines)
 
 
+def verify_prepared_repo(repo_root: Path, memory_dir: Path) -> None:
+    required_paths = [
+        repo_root / "AGENTS.md",
+        repo_root / "automation" / "README.md",
+        repo_root / "automation" / "run_agentglg_sync.sh",
+        repo_root / "automation" / "setup_github_auth.sh",
+        repo_root / "automation" / "sync_agentglg_mirror.py",
+        repo_root / "agent-development" / "confirmed-error-patterns.md",
+        repo_root / "agent-development" / "missed-findings-log.md",
+        repo_root / "agent-development" / "template-notes.md",
+        repo_root / "agent-development" / "user-confirmed-corrections.md",
+        repo_root / "agent-development" / "skills" / "glavlab-protocol-review" / "SKILL.md",
+    ]
+    missing = [str(path) for path in required_paths if not path.exists()]
+    if missing:
+        raise RuntimeError("В подготовленном зеркале отсутствуют обязательные файлы:\n" + "\n".join(missing))
+
+    for name in MEMORY_FILES:
+        source = memory_dir / name
+        canonical = repo_root / "agent-development" / name
+        raw_copy = repo_root / "agent-development" / "memory-exports" / "raw-memory" / name
+        if not source.exists():
+            raise RuntimeError(f"Не найден исходный файл памяти: {source}")
+        if not canonical.exists():
+            raise RuntimeError(f"Не найден канонический файл памяти в зеркале: {canonical}")
+        if not raw_copy.exists():
+            raise RuntimeError(f"Не найден raw-файл памяти в зеркале: {raw_copy}")
+        source_bytes = source.read_bytes()
+        if canonical.read_bytes() != source_bytes:
+            raise RuntimeError(f"Канонический файл памяти не совпадает с источником: {canonical}")
+        if raw_copy.read_bytes() != source_bytes:
+            raise RuntimeError(f"Raw-файл памяти не совпадает с источником: {raw_copy}")
+
+
 def append_sync_changelog(changelog_path: Path) -> None:
     today = dt.date.today().isoformat()
     sync_line = f"- выполнена автоматическая синхронизация GitHub-зеркала и пересборка служебных индексов."
@@ -537,6 +571,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     manifest_src = agent_dev_src / "github-mirror-manifest.md"
     if manifest_src.exists():
         copy_file(manifest_src, repo_root / "github-mirror-manifest.md")
+    verify_prepared_repo(repo_root, memory_dir)
 
 def clone_or_update_repo(repo_root: Path, branch: str) -> None:
     if not repo_root.exists():
