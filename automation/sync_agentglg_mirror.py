@@ -309,6 +309,31 @@ def build_canonical_memory_readme() -> str:
     )
 
 
+def build_memory_sync_status(memory_dir: Path) -> str:
+    tracked = [
+        "confirmed-error-patterns.md",
+        "missed-findings-log.md",
+        "template-notes.md",
+        "user-confirmed-corrections.md",
+    ]
+    lines = [
+        "# Memory Sync Status",
+        "",
+        f"Обновлено: {dt.datetime.now(dt.UTC).isoformat()}",
+        "",
+        "Этот файл показывает контрольные суммы канонических файлов памяти, собранных из рабочей памяти агента.",
+        "",
+    ]
+    for name in tracked:
+        source = memory_dir / name
+        if source.exists():
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            lines.append(f"- `{name}`: `{digest}`")
+        else:
+            lines.append(f"- `{name}`: MISSING")
+    return "\n".join(lines)
+
+
 def append_sync_changelog(changelog_path: Path) -> None:
     today = dt.date.today().isoformat()
     sync_line = f"- выполнена автоматическая синхронизация GitHub-зеркала и пересборка служебных индексов."
@@ -550,6 +575,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         else build_placeholder("User Confirmed Corrections", "memory/user-confirmed-corrections.md"),
     )
     write_text(agent_dev_dst / "CANONICAL-MEMORY.md", build_canonical_memory_readme())
+    write_text(agent_dev_dst / "MEMORY-SYNC-STATUS.md", build_memory_sync_status(memory_dir))
 
     skills_dir = agent_dev_dst / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
