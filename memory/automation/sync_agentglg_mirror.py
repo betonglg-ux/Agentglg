@@ -18,6 +18,7 @@ SKILL_PATH = Path("/root/.codex/skills/hermes/glavlab-protocol-review/SKILL.md")
 TOKEN_FILE_RELATIVE = Path("memory/agentglg-github-token.txt")
 PRIVATE_TOKEN_FILE_RELATIVE = Path("memory/automation/private/agentglg-github-token.txt")
 SYNC_STATE_FILE_RELATIVE = Path("memory/agentglg-sync-state.txt")
+MEMORY_SNAPSHOTS_DIR_RELATIVE = Path("memory/snapshots")
 WORKSPACE_EXCLUDE_TOP_LEVEL = {
     ".git",
     "user_files",
@@ -83,6 +84,65 @@ def copy_file(src: Path, dst: Path) -> None:
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text.rstrip() + "\n", encoding="utf-8")
+
+
+def normalize_significant_lines(text: str) -> list[str]:
+    lines: list[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        lines.append(line)
+    return lines
+
+
+def snapshot_memory_files(workspace: Path) -> Path | None:
+    memory_dir = workspace / "memory"
+    files_to_copy = [memory_dir / name for name in MEMORY_FILES if (memory_dir / name).exists()]
+    if not files_to_copy:
+        return None
+
+    stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+    snapshot_dir = workspace / MEMORY_SNAPSHOTS_DIR_RELATIVE / stamp
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+
+    for source in files_to_copy:
+        copy_file(source, snapshot_dir / source.name)
+
+    manifest_lines = [
+        "# Memory Snapshot",
+        "",
+        f"- created_at_utc: `{stamp}`",
+        "- files:",
+    ]
+    for source in files_to_copy:
+        manifest_lines.append(f"  - `{source.name}`")
+    write_text(snapshot_dir / "README.md", "\n".join(manifest_lines))
+    return snapshot_dir
+
+
+def detect_memory_regressions(repo_root: Path, workspace: Path) -> list[str]:
+    memory_dir = workspace / "memory"
+    regressions: list[str] = []
+
+    for file_name in MEMORY_FILES:
+        local_path = memory_dir / file_name
+        remote_path = repo_root / "agent-development" / file_name
+        if not local_path.exists() or not remote_path.exists():
+            continue
+
+        local_lines = set(normalize_significant_lines(local_path.read_text(encoding="utf-8")))
+        remote_lines = set(normalize_significant_lines(remote_path.read_text(encoding="utf-8")))
+        missing_lines = [line for line in sorted(remote_lines - local_lines) if len(line) > 4]
+        if not missing_lines:
+            continue
+
+        preview = "; ".join(missing_lines[:3])
+        if len(missing_lines) > 3:
+            preview += f"; и ещё {len(missing_lines) - 3}"
+        regressions.append(f"{file_name}: в зеркале есть строки, которых нет в локальной памяти: {preview}")
+
+    return regressions
 
 
 def rel_files(base: Path) -> list[Path]:
@@ -335,6 +395,8 @@ def should_skip_workspace_relative(rel: Path) -> bool:
         return True
     if rel_text.startswith("memory/automation/private/"):
         return True
+    if rel_text.startswith("memory/snapshots/"):
+        return True
     if any(part in WORKSPACE_EXCLUDE_DIR_NAMES for part in parts[:-1]):
         return True
     if parts[-1] in WORKSPACE_EXCLUDE_FILE_NAMES:
@@ -564,6 +626,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--message", default="Sync agent mirror from workspace", help="Сообщение коммита")
     parser.add_argument("--no-push", action="store_true", help="Подготовить и закоммитить изменения без push")
     parser.add_argument("--only-if-changed", action="store_true", help="Запускать синхронизацию только если рабочие файлы изменились")
+    parser.add_argument(
+        "--allow-memory-overwrite",
+        action="store_true",
+        help="Разрешить синхронизацию даже если в зеркале найдены строки памяти, которых нет локально",
+    )
     return parser.parse_args()
 
 
@@ -597,6 +664,17 @@ def main() -> int:
 
     repo_dir = Path(args.repo_dir).resolve() if args.repo_dir else Path(tempfile.gettempdir()) / "agentglg-mirror-repo"
     clone_or_update_repo(repo_dir, args.branch)
+    snapshot_dir = snapshot_memory_files(workspace)
+    regressions = detect_memory_regressions(repo_dir, workspace)
+    if regressions and not args.allow_memory_overwrite:
+        details = "\n".join(f"- {item}" for item in regressions)
+        snapshot_hint = f"\nЗащитный снимок памяти сохранен в: {snapshot_dir}" if snapshot_dir else ""
+        raise RuntimeError(
+            "Синхронизация остановлена: в GitHub-зеркале найдены строки памяти, которых нет локально.\n"
+            "Это похоже на потерю наработок перед зеркалированием.\n"
+            f"{details}{snapshot_hint}\n"
+            "Сначала восстановите локальную память, затем повторите запуск."
+        )
     prepare_repo(repo_dir, workspace)
     git_commit_and_push(repo_dir, args.branch, args.message, do_push=not args.no_push)
 
