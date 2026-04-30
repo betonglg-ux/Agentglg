@@ -7,9 +7,6 @@
 ## 1. Что уже входит в экспортный пакет
 
 ### Базовые служебные файлы
-- `AGENTS.md` — переносимая копия актуальных инструкций агента;
-- `automation/README.md` — описание реальной схемы синхронизации;
-- `automation/sync_agentglg_mirror.py` — рабочий скрипт сборки зеркала;
 - `agent-development/github-mirror-manifest.md` — манифест структуры зеркала и правил дублирования;
 - `agent-development/current-agent-instructions.md` — переносимая копия текущих инструкций агента;
 - `agent-development/agent-summary.md` — краткая карточка агента для восстановления и клонирования;
@@ -22,54 +19,50 @@
 
 ### Обязательные рабочие материалы
 - папка `protocols/` с шаблонами по типам испытаний;
+- папка `xl/` с техническими ресурсами табличных файлов;
 - прикреплённый навык `glavlab-protocol-review`;
 - текущая конфигурация инструкций агента;
-- 4 канонических файла памяти.
+- накопленные данные в Memory.
 
-### Память и её дубли
-- `agent-development/confirmed-error-patterns.md`
-- `agent-development/missed-findings-log.md`
-- `agent-development/template-notes.md`
-- `agent-development/user-confirmed-corrections.md`
+### Заготовки для экспорта Memory
 - `agent-development/memory-exports/README.md`
 - `agent-development/memory-exports/confirmed-error-patterns-export.md`
 - `agent-development/memory-exports/missed-findings-export.md`
 - `agent-development/memory-exports/template-notes-export.md`
 - `agent-development/memory-exports/user-corrections-export.md`
-- `agent-development/memory-exports/raw-memory/*.md`
 
 ## 2. Что нужно выгружать в GitHub в первую очередь
 
 Порядок приоритета:
 1. `current-agent-instructions.md`
-2. 4 канонических файла памяти
-3. `agent-summary.md`
-4. `github-mirror-manifest.md`
-5. `automation/sync_agentglg_mirror.py`
-6. `skills/README.md`
-7. `files-index/attached-files-index.md`
-8. `files-index/templates-index.md`
-9. содержимое `protocols/`
-10. changelog и служебные memory-файлы контроля
+2. `agent-summary.md`
+3. `github-mirror-manifest.md`
+4. `skills/README.md`
+5. `files-index/attached-files-index.md`
+6. `files-index/templates-index.md`
+7. содержимое `protocols/`
+8. важные материалы из `xl/`, если они нужны для восстановления шаблонов
+9. экспортированные данные из `memory-exports/`
+10. changelog и подтверждённые паттерны по мере накопления
 
 ## 3. Минимальный набор для создания нового похожего агента
 
 Чтобы быстро собрать похожего агента, нужно восстановить:
 - инструкции из `agent-development/current-agent-instructions.md`;
-- корневой `AGENTS.md` и папку `automation/`;
 - обязательный навык `glavlab-protocol-review`;
 - шаблоны из `protocols/`;
 - индексы файлов и навыков;
-- четыре канонических файла памяти;
+- экспорт важных данных из Memory;
 - правила GitHub-зеркала из `github-mirror-manifest.md`.
 
 ## 4. Что ещё остаётся сделать позже
 
 Следующие этапы усилят экспорт:
-- поддерживать описания зеркала синхронно со скриптом;
+- выгрузить в GitHub сами файлы этого пакета;
+- дополнить полный индекс файлов, если файловое дерево покажет больше элементов;
+- отдельно описать, какие файлы из `xl/` обязательны для восстановления;
 - при возможности зафиксировать материалы навыка `glavlab-protocol-review` в зеркале подробнее;
-- регулярно пополнять четыре канонических файла памяти подтверждёнными наработками;
-- периодически проверять `MEMORY-SYNC-STATUS.md` после заметных обновлений памяти.
+- регулярно пополнять `memory-exports/` подтверждёнными наработками.
 
 ## 5. Смысл этого пакета
 
