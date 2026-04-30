@@ -28,6 +28,7 @@ SOURCE_DOCS = [
     "github-mirror-manifest.md",
     "github-export-bundle.md",
     "recovery-plan.md",
+    "SYNC-GUARANTEES.md",
 ]
 
 
