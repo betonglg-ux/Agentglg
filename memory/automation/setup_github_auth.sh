@@ -21,9 +21,9 @@ cat <<'EOF'
 Токен сохранен в памяти агента для будущих автоматических запусков.
 Теперь синхронизацию можно запускать так:
 
-python3 /workspace/automation/sync_agentglg_mirror.py
+bash /workspace/memory/automation/export_agentglg_mirror.sh
 
 Для пробного запуска без отправки:
 
-python3 /workspace/automation/sync_agentglg_mirror.py --no-push
+bash /workspace/memory/automation/export_agentglg_mirror.sh --no-push
 EOF

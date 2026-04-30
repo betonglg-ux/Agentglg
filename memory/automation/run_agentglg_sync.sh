@@ -6,7 +6,7 @@ FALLBACK_SCRIPT="/workspace/agent_files/agent-development/automation/sync_agentg
 MEMORY_SCRIPT="/workspace/memory/automation/sync_agentglg_mirror.py"
 
 if [[ ! -d /workspace ]]; then
-  echo "Синхронизация не запущена: рабочая папка /workspace недоступна."
+  echo "Экспорт в зеркало не запущен: рабочая папка /workspace недоступна."
   exit 1
 fi
 
@@ -23,9 +23,9 @@ if [[ -f "${MEMORY_SCRIPT}" ]]; then
 fi
 
 if [[ ! -d /workspace/automation ]]; then
-  echo "Синхронизация не запущена: папка /workspace/automation недоступна, а резервные скрипты в /workspace/agent_files/agent-development/automation и /workspace/memory/automation тоже не найдены."
+  echo "Экспорт в зеркало не запущен: папка /workspace/automation недоступна, а резервные скрипты в /workspace/agent_files/agent-development/automation и /workspace/memory/automation тоже не найдены."
   exit 1
 fi
 
-echo "Синхронизация не запущена: скрипты ${PRIMARY_SCRIPT}, ${FALLBACK_SCRIPT} и ${MEMORY_SCRIPT} не найдены."
+echo "Экспорт в зеркало не запущен: скрипты ${PRIMARY_SCRIPT}, ${FALLBACK_SCRIPT} и ${MEMORY_SCRIPT} не найдены."
 exit 1

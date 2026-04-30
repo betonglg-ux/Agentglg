@@ -331,7 +331,7 @@ def build_placeholder(title: str, source_name: str) -> str:
 
 def append_sync_changelog(changelog_path: Path) -> None:
     today = dt.date.today().isoformat()
-    sync_line = f"- выполнена автоматическая синхронизация GitHub-зеркала и пересборка служебных индексов."
+    sync_line = f"- выполнен автоматический экспорт в GitHub-зеркало и пересборка служебных индексов."
     if changelog_path.exists():
         existing = changelog_path.read_text(encoding="utf-8")
     else:
@@ -339,7 +339,7 @@ def append_sync_changelog(changelog_path: Path) -> None:
 
     marker = f"## {today}"
     if marker not in existing:
-        existing = existing.rstrip() + f"\n\n## {today}\n\n### Синхронизация\n{sync_line}\n"
+        existing = existing.rstrip() + f"\n\n## {today}\n\n### Экспорт в зеркало\n{sync_line}\n"
     elif sync_line not in existing:
         existing = existing.rstrip() + f"\n{sync_line}\n"
     changelog_path.write_text(existing.rstrip() + "\n", encoding="utf-8")
@@ -517,7 +517,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
 
     files_index_dir = agent_dev_dst / "files-index"
     files_index_dir.mkdir(parents=True, exist_ok=True)
-    write_text(files_index_dir / "README.md", "# Files Index\n\nЭтот раздел автоматически собирается при синхронизации зеркала.")
+    write_text(files_index_dir / "README.md", "# Files Index\n\nЭтот раздел автоматически собирается при экспорте в зеркало.")
     write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(agent_files))
     write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
 
@@ -536,8 +536,6 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         target = memory_exports_dir / export_name
         if source.exists():
             copy_file(source, target)
-        elif (agent_dev_src / "memory-exports" / export_name).exists():
-            copy_file(agent_dev_src / "memory-exports" / export_name, target)
         else:
             write_text(target, build_placeholder(export_name.replace("-", " ").replace(".md", "").title(), memory_name))
 
@@ -621,17 +619,17 @@ def git_commit_and_push(repo_root: Path, branch: str, message: str, do_push: boo
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Синхронизация GitHub-зеркала агента betonglg-ux/Agentglg")
+    parser = argparse.ArgumentParser(description="Экспорт текущей рабочей среды агента в GitHub-зеркало betonglg-ux/Agentglg")
     parser.add_argument("--workspace", default="/workspace", help="Корень рабочей среды агента")
     parser.add_argument("--repo-dir", default="", help="Путь до локального клона репозитория")
-    parser.add_argument("--branch", default=DEFAULT_BRANCH, help="Ветка для синхронизации")
-    parser.add_argument("--message", default="Sync agent mirror from workspace", help="Сообщение коммита")
-    parser.add_argument("--no-push", action="store_true", help="Подготовить и закоммитить изменения без push")
-    parser.add_argument("--only-if-changed", action="store_true", help="Запускать синхронизацию только если рабочие файлы изменились")
+    parser.add_argument("--branch", default=DEFAULT_BRANCH, help="Ветка для экспорта")
+    parser.add_argument("--message", default="Export agent mirror from workspace", help="Сообщение коммита")
+    parser.add_argument("--no-push", action="store_true", help="Подготовить и закоммитить изменения без отправки в GitHub")
+    parser.add_argument("--only-if-changed", action="store_true", help="Запускать экспорт только если рабочие файлы изменились")
     parser.add_argument(
         "--allow-memory-overwrite",
         action="store_true",
-        help="Разрешить синхронизацию даже если в зеркале найдены строки памяти, которых нет локально",
+        help="Разрешить экспорт даже если в зеркале найдены строки памяти, которых нет локально",
     )
     return parser.parse_args()
 
@@ -647,7 +645,7 @@ def main() -> int:
     if args.only_if_changed:
         previous = read_sync_state(workspace)
         if previous == fingerprint:
-            print("Новых изменений нет. Синхронизация не требуется.")
+            print("Новых изменений нет. Экспорт в зеркало не требуется.")
             return 0
 
     token = load_token(workspace)
@@ -664,6 +662,15 @@ def main() -> int:
         )
         return 1
 
+    missing_memory_files = [name for name in MEMORY_FILES if not (workspace / "memory" / name).exists()]
+    if missing_memory_files:
+        joined = ", ".join(missing_memory_files)
+        raise RuntimeError(
+            "Экспорт остановлен: отсутствуют обязательные локальные файлы памяти.\n"
+            f"Не найдены: {joined}\n"
+            "Экспорт работает только от текущей локальной памяти к зеркалу и не подставляет старые копии из служебных файлов."
+        )
+
     repo_dir = Path(args.repo_dir).resolve() if args.repo_dir else Path(tempfile.gettempdir()) / "agentglg-mirror-repo"
     clone_or_update_repo(repo_dir, args.branch)
     snapshot_dir = snapshot_memory_files(workspace)
@@ -672,7 +679,7 @@ def main() -> int:
         details = "\n".join(f"- {item}" for item in regressions)
         snapshot_hint = f"\nЗащитный снимок памяти сохранен в: {snapshot_dir}" if snapshot_dir else ""
         raise RuntimeError(
-            "Синхронизация остановлена: в GitHub-зеркале найдены строки памяти, которых нет локально.\n"
+            "Экспорт остановлен: в GitHub-зеркале найдены строки памяти, которых нет локально.\n"
             "Это похоже на расхождение источников или потерю наработок перед зеркалированием.\n"
             f"{details}{snapshot_hint}\n"
             "Не обновляйте локальную память автоматически из зеркала.\n"
@@ -683,10 +690,10 @@ def main() -> int:
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
     write_sync_state(workspace, fingerprint, head)
-    print(f"Синхронизация завершена. Локальный репозиторий: {repo_dir}")
+    print(f"Экспорт в зеркало завершен. Локальный репозиторий: {repo_dir}")
     print(f"Текущий коммит: {head}")
     if args.no_push:
-        print("Push не выполнялся.")
+        print("Отправка в GitHub не выполнялась.")
     return 0
 
 
