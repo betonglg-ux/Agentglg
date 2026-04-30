@@ -228,18 +228,11 @@ def build_memory_export_readme() -> str:
         [
             "# Memory Exports",
             "",
-            "Эта папка хранит экспортные и зеркальные материалы по памяти агента.",
+            "Эта папка хранит переносимые выгрузки из памяти агента.",
             "",
-            "Канонический источник истины в GitHub:",
-            "- `agent-development/confirmed-error-patterns.md`",
-            "- `agent-development/missed-findings-log.md`",
-            "- `agent-development/template-notes.md`",
-            "- `agent-development/user-confirmed-corrections.md`",
-            "",
-            "Что лежит здесь:",
-            "- `*-export.md` — короткие экспортные указатели на канонические файлы;",
-            "- `raw-memory/` — прямое зеркало markdown-файлов из рабочей памяти агента;",
-            "- `memory-index.md` — список реально найденных markdown-файлов памяти.",
+            "Правило:",
+            "- если в памяти уже есть устойчивое знание, его нужно дублировать сюда в читаемом виде;",
+            "- если память ещё не заполнена, здесь остаются заготовки для будущих экспортов.",
         ]
     )
 
@@ -272,66 +265,6 @@ def build_placeholder(title: str, source_name: str) -> str:
             f"Основной источник для следующего заполнения: `{source_name}`.",
         ]
     )
-
-
-def build_export_pointer(title: str, canonical_path: str, raw_path: str) -> str:
-    return "\n".join(
-        [
-            f"# {title}",
-            "",
-            "Канонический файл памяти находится здесь:",
-            f"- `{canonical_path}`",
-            "",
-            "Прямое зеркало рабочего файла памяти находится здесь:",
-            f"- `{raw_path}`",
-            "",
-            "Этот экспортный файл оставлен как совместимый указатель, чтобы в репозитории не было второго конкурирующего текста.",
-        ]
-    )
-
-
-def build_canonical_memory_readme() -> str:
-    return "\n".join(
-        [
-            "# Canonical Memory",
-            "",
-            "Канонические файлы памяти агента в GitHub:",
-            "- `agent-development/confirmed-error-patterns.md`",
-            "- `agent-development/missed-findings-log.md`",
-            "- `agent-development/template-notes.md`",
-            "- `agent-development/user-confirmed-corrections.md`",
-            "",
-            "Правило:",
-            "- именно эти файлы считаются основным источником истины в зеркале;",
-            "- `agent-development/memory-exports/raw-memory/` хранит прямые копии файлов из рабочей памяти;",
-            "- `agent-development/memory-exports/*-export.md` больше не дублируют содержимое, а только указывают на канонические файлы.",
-        ]
-    )
-
-
-def build_memory_sync_status(memory_dir: Path) -> str:
-    tracked = [
-        "confirmed-error-patterns.md",
-        "missed-findings-log.md",
-        "template-notes.md",
-        "user-confirmed-corrections.md",
-    ]
-    lines = [
-        "# Memory Sync Status",
-        "",
-        f"Обновлено: {dt.datetime.now(dt.UTC).isoformat()}",
-        "",
-        "Этот файл показывает контрольные суммы канонических файлов памяти, собранных из рабочей памяти агента.",
-        "",
-    ]
-    for name in tracked:
-        source = memory_dir / name
-        if source.exists():
-            digest = hashlib.sha256(source.read_bytes()).hexdigest()
-            lines.append(f"- `{name}`: `{digest}`")
-        else:
-            lines.append(f"- `{name}`: MISSING")
-    return "\n".join(lines)
 
 
 def append_sync_changelog(changelog_path: Path) -> None:
@@ -537,10 +470,12 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     for memory_name, export_name in export_map.items():
         source = memory_dir / memory_name
         target = memory_exports_dir / export_name
-        canonical = f"agent-development/{memory_name}"
-        raw = f"agent-development/memory-exports/raw-memory/{memory_name}"
-        title = export_name.replace("-export.md", "").replace("-", " ").title()
-        write_text(target, build_export_pointer(title, canonical, raw))
+        if source.exists():
+            copy_file(source, target)
+        elif (agent_dev_src / "memory-exports" / export_name).exists():
+            copy_file(agent_dev_src / "memory-exports" / export_name, target)
+        else:
+            write_text(target, build_placeholder(export_name.replace("-", " ").replace(".md", "").title(), memory_name))
 
     raw_memory_dir = memory_exports_dir / "raw-memory"
     raw_memory_dir.mkdir(parents=True, exist_ok=True)
@@ -574,8 +509,6 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         if (memory_dir / "user-confirmed-corrections.md").exists()
         else build_placeholder("User Confirmed Corrections", "memory/user-confirmed-corrections.md"),
     )
-    write_text(agent_dev_dst / "CANONICAL-MEMORY.md", build_canonical_memory_readme())
-    write_text(agent_dev_dst / "MEMORY-SYNC-STATUS.md", build_memory_sync_status(memory_dir))
 
     skills_dir = agent_dev_dst / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
