@@ -2,17 +2,21 @@
 
 Назначение: этот файл автоматически собирается из рабочей среды агента и помогает быстро понять, что именно выгружается в GitHub-зеркало.
 
-## 1. Канонические источники в рабочей среде
-- `AGENTS.md`
-- `automation/README.md`
-- `automation/run_agentglg_sync.sh`
-- `automation/setup_github_auth.sh`
-- `automation/sync_agentglg_mirror.py`
-- `memory/confirmed-error-patterns.md`
-- `memory/missed-findings-log.md`
-- `memory/template-notes.md`
-- `memory/user-confirmed-corrections.md`
-- `glavlab-protocol-review/SKILL.md`
+## 1. Служебные файлы развития агента
+- `agent-development/CHANGELOG.md`
+- `agent-development/agent-summary.md`
+- `agent-development/current-agent-instructions.md`
+- `agent-development/files-index/attached-files-index.md`
+- `agent-development/files-index/templates-index.md`
+- `agent-development/github-export-bundle.md`
+- `agent-development/github-mirror-manifest.md`
+- `agent-development/memory-exports/README.md`
+- `agent-development/memory-exports/confirmed-error-patterns-export.md`
+- `agent-development/memory-exports/missed-findings-export.md`
+- `agent-development/memory-exports/template-notes-export.md`
+- `agent-development/memory-exports/user-corrections-export.md`
+- `agent-development/recovery-plan.md`
+- `agent-development/skills/README.md`
 
 ## 2. Папка `protocols/`
 ### `protocols/Адгезия`
@@ -83,11 +87,11 @@
 
 ## 4. Что означает эта структура
 - `protocols/` хранит шаблоны протоколов, на которых держится сверка PDF;
-- `agent-development/` хранит канонические материалы для воспроизведения и развития агента;
-- `xl/` показан только как технический источник локальной среды и не должен дублироваться в корень зеркала.
+- `agent-development/` хранит материалы для воспроизведения и развития агента;
+- `xl/` хранит технические ресурсы, связанные с табличными материалами.
 
 ## 5. Приоритеты зеркалирования
-1. инструкции агента и automation-скрипты;
-2. четыре канонических файла памяти;
-3. все шаблоны из `protocols/`;
-4. ключевой навык и служебные индексы `agent-development/`.
+1. все шаблоны из `protocols/`;
+2. служебные материалы из `agent-development/`;
+3. память агента и экспорт устойчивых правил;
+4. технические файлы, если они реально нужны для восстановления среды.
