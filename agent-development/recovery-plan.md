@@ -33,26 +33,26 @@
 5. Убедиться, что ключевые шаблоны действительно прикреплены к новому агенту.
 
 ## 5. Восстановить служебные файлы развития
-1. Перенести в нового агента папку `agent-development/` или её нужные файлы.
+1. Перенести в нового агента корневые файлы `AGENTS.md`, `automation/` и нужные файлы из `agent-development/`.
 2. Как минимум восстановить:
    - `github-mirror-manifest.md`
    - `agent-summary.md`
    - `github-export-bundle.md`
+   - `automation/README.md`
+   - `automation/sync_agentglg_mirror.py`
    - `files-index/attached-files-index.md`
    - `files-index/templates-index.md`
    - `skills/README.md`
 3. Проверить, что у нового агента есть читаемая база для дальнейшего сопровождения и зеркалирования.
 
 ## 6. Восстановить важные данные из Memory
-1. Открыть папку `agent-development/memory-exports/`.
-2. Проверить наличие экспортов:
-   - `confirmed-error-patterns-export.md`
-   - `missed-findings-export.md`
-   - `template-notes-export.md`
-   - `user-corrections-export.md`
-3. Перенести эти знания в рабочий контур нового агента:
-   - либо в его Memory;
-   - либо в прикреплённые служебные файлы, если это удобнее.
+1. Открыть четыре канонических файла памяти:
+   - `agent-development/confirmed-error-patterns.md`
+   - `agent-development/missed-findings-log.md`
+   - `agent-development/template-notes.md`
+   - `agent-development/user-confirmed-corrections.md`
+2. При необходимости свериться с их прямыми копиями в `agent-development/memory-exports/raw-memory/`.
+3. Перенести эти знания в рабочий контур нового агента.
 4. Убедиться, что критичные наработки не потерялись и доступны новому агенту.
 
 ## 7. Восстановить GitHub-mirror режим
@@ -89,7 +89,7 @@
 1. Восстановить инструкции.
 2. Прикрепить `glavlab-protocol-review`.
 3. Загрузить папку `protocols/`.
-4. Подтянуть ключевые данные из `memory-exports/`.
+4. Подтянуть четыре канонических файла памяти.
 5. Проверить работу на одном тестовом PDF.
 
 ## Итог
