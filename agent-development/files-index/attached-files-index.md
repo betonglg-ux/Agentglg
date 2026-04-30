@@ -5,6 +5,10 @@
 ## 1. Служебные файлы развития агента
 - `agent-development/CHANGELOG.md`
 - `agent-development/agent-summary.md`
+- `agent-development/automation/README.md`
+- `agent-development/automation/run_agentglg_sync.sh`
+- `agent-development/automation/setup_github_auth.sh`
+- `agent-development/automation/sync_agentglg_mirror.py`
 - `agent-development/current-agent-instructions.md`
 - `agent-development/files-index/attached-files-index.md`
 - `agent-development/files-index/templates-index.md`
