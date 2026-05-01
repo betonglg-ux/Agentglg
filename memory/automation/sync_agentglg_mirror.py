@@ -475,6 +475,10 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     protocols_dir = agent_files / "protocols"
     agent_dev_src = agent_files / "agent-development"
     agent_dev_dst = repo_root / "agent-development"
+    existing_changelog = None
+    changelog_path = agent_dev_dst / "CHANGELOG.md"
+    if changelog_path.exists():
+        existing_changelog = changelog_path.read_text(encoding="utf-8")
 
     ignore_workspace = build_workspace_copy_ignore(workspace)
     tracked_top_level = set()
@@ -509,8 +513,12 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
 
-    for file_name in ["CHANGELOG.md", "github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
+    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
         copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
+    if existing_changelog is not None:
+        write_text(agent_dev_dst / "CHANGELOG.md", existing_changelog)
+    else:
+        copy_file(agent_dev_src / "CHANGELOG.md", agent_dev_dst / "CHANGELOG.md")
 
     copy_tree(protocols_dir, agent_dev_dst / "protocols")
     write_text(agent_dev_dst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
