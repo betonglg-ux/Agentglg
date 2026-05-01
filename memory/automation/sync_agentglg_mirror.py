@@ -509,7 +509,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
 
-    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
+    for file_name in ["CHANGELOG.md", "github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
         copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
 
     copy_tree(protocols_dir, agent_dev_dst / "protocols")
