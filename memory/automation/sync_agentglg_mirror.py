@@ -330,7 +330,7 @@ def build_placeholder(title: str, source_name: str) -> str:
 
 
 def append_sync_changelog(changelog_path: Path) -> None:
-    today = dt.date.today().isoformat()
+    today = dt.datetime.now(dt.UTC).date().isoformat()
     sync_line = f"- выполнен автоматический экспорт в GitHub-зеркало и пересборка служебных индексов."
     if changelog_path.exists():
         existing = changelog_path.read_text(encoding="utf-8")
@@ -581,7 +581,6 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     if SKILL_PATH.exists():
         copy_file(SKILL_PATH, skills_dir / "glavlab-protocol-review" / "SKILL.md")
 
-    append_sync_changelog(agent_dev_dst / "CHANGELOG.md")
     manifest_src = agent_dev_src / "github-mirror-manifest.md"
     if manifest_src.exists():
         copy_file(manifest_src, repo_root / "github-mirror-manifest.md")
@@ -686,6 +685,8 @@ def main() -> int:
             "Сначала вручную сравните локальную память, защитный снимок и подтвержденные пользователем правки, затем повторите запуск."
         )
     prepare_repo(repo_dir, workspace)
+    if git_has_changes(repo_dir):
+        append_sync_changelog(repo_dir / "agent-development" / "CHANGELOG.md")
     git_commit_and_push(repo_dir, args.branch, args.message, do_push=not args.no_push)
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
