@@ -32,8 +32,9 @@
 
 ### Изменено
 - служебная копия `agent_files/agent-development/current-agent-instructions.md` выровнена по актуальному `AGENTS.md`;
-- пересобраны производные файлы `agent-summary.md`, `files-index/*` и `memory-exports/*` по текущим `agent_files/` и `memory/`.
+- пересобраны `agent-summary.md`, `files-index/*` и `memory-exports/*` по текущим `agent_files/` и `memory/`;
+- в служебный пакет `agent_files/agent-development/memory-exports/` добавлены актуальный `memory-index.md` и сырые markdown-копии памяти.
 
 ### Примечания
-- локальная память в `/workspace/memory` подтверждена как первичный источник истины перед зеркалированием;
-- перед сверкой с GitHub создан локальный защитный снимок ключевых файлов памяти.
+- при сверке перед обновлением подтверждено, что локальная память в `/workspace/memory` остается первичным источником истины;
+- синхронизацию в зеркало выполнять только из текущего состояния агента и локальной памяти, без обратной подмены из GitHub.
