@@ -40,3 +40,5 @@
 - выровнен файл `agent_files/agent-development/skills/README.md` по текущему локальному содержимому, чтобы зеркало снова совпадало с рабочими файлами агента.
 - обновлён экспортный скрипт `memory/automation/sync_agentglg_mirror.py`: теперь он принудительно пересобирает вложенные служебные копии внутри `agent_files/agent-development/` из текущих локальных инструкций и текущей структуры шаблонов.
 - из-за сетевого запрета на прямой `git clone` синхронизация доведена через GitHub-коннектор, без обратной подмены локальной памяти данными зеркала.
+- повторно сверены первичные локальные источники: `/workspace/AGENTS.md`, `/workspace/agent_files/` и `/workspace/memory/`.
+- в зеркале обновлены реальные локальные версии `agent_files/agent-development/current-agent-instructions.md`, `agent_files/agent-development/agent-summary.md` и `agent_files/agent-development/skills/README.md`.
