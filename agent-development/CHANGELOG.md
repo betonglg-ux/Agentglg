@@ -35,3 +35,4 @@
 - переносимая копия `agent-development/current-agent-instructions.md` повторно синхронизирована из актуального локального `/workspace/AGENTS.md`.
 - исправлено отставание зеркала: `agent-development/current-agent-instructions.md` обновлен до точной текущей версии `/workspace/AGENTS.md`.
 - память агента, навык `glavlab-protocol-review` и индексы `agent_files` дополнительно сверены с локальной рабочей средой; новых расхождений не найдено.
+- синхронизированы вложенные служебные копии `agent_files/agent-development/current-agent-instructions.md` и `agent_files/agent-development/agent-summary.md` по текущей локальной рабочей среде.
