@@ -33,3 +33,4 @@
 ### Экспорт в зеркало
 - выполнен автоматический экспорт в GitHub-зеркало и пересборка служебных индексов.
 - переносимая копия `agent-development/current-agent-instructions.md` повторно синхронизирована из актуального локального `/workspace/AGENTS.md`.
+- исправлено отставание зеркала: `agent-development/current-agent-instructions.md` обновлен до точной текущей версии `/workspace/AGENTS.md`.
