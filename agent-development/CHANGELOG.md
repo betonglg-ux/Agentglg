@@ -43,3 +43,4 @@
 - повторно сверены первичные локальные источники: `/workspace/AGENTS.md`, `/workspace/agent_files/` и `/workspace/memory/`.
 - повторно подтверждено, что зеркальные копии `agent_files/agent-development/current-agent-instructions.md`, `agent_files/agent-development/agent-summary.md` и `agent_files/agent-development/skills/README.md` совпадают с текущими локальными файлами агента.
 - выполнена ручная точечная синхронизация после прямой сверки локального `/workspace/AGENTS.md`, локального `agent_files` и первичной памяти из `/workspace/memory`; обновлены только реально отстававшие зеркальные копии инструкций и карточки агента.
+- дополнительно зафиксировано правило: локальная память в `/workspace/memory` остаётся первичной, GitHub продолжает быть только односторонним зеркалом, а локальный скрипт синхронизации приведён к этому режиму.
