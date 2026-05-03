@@ -44,5 +44,6 @@
 - повторно проверены первичные локальные источники: `/workspace/AGENTS.md`, `agent_files/` и память из `/workspace/memory`;
 - подтверждено, что ключевые файлы памяти и основные зеркальные инструкции уже совпадали с локальным состоянием;
 - найдены реальные расхождения только во вложенных служебных копиях внутри `agent_files/agent-development/`;
-- выровнены с локальной рабочей средой файлы `current-agent-instructions.md`, `agent-summary.md`, `files-index/attached-files-index.md`, `files-index/templates-index.md` и `CHANGELOG.md` в зеркальной ветке `agent_files/`;
+- выровнены с локальной рабочей средой файлы `current-agent-instructions.md` и `agent-summary.md` внутри зеркальной ветки `agent_files/agent-development/`;
+- повторная сверка не подтвердила расхождения для `files-index/attached-files-index.md`, `files-index/templates-index.md` и `agent_files/agent-development/CHANGELOG.md`;
 - локальная память снова сохранена как первичный источник истины без обратной подмены из GitHub-зеркала.
