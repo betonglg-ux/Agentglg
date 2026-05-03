@@ -277,8 +277,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;
-            - папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;",
+            "- папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -586,7 +586,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         copied_agent_files_dev / "current-agent-instructions.md",
         (workspace / "AGENTS.md").read_text(encoding="utf-8"),
     )
-    write_text(copied_agent_files_dev / "agent-summary.md", build_agent_summary(protocols_dir))
+    write_text(copied_agent_files_dev / "agent-summary.md", build_agentSummary(protocols_dir))
     skills_index_dir = copied_agent_files_dev / "skills"
     skills_index_dir.mkdir(parents=True, exist_ok=True)
     write_text(skills_index_dir / "README.md", build_skills_index_readme())
@@ -773,7 +773,7 @@ def main() -> int:
     prepare_repo(repo_dir, workspace)
     if git_has_changes(repo_dir):
         append_sync_changelog(repo_dir / "agent-development" / "CHANGELOG.md")
-    git_commit_and_push(repo_dir, args.branch, args.message, do_push=not args.no_push)
+    git_commit_and_push(repo_dir, args.branch, message, do_push=not args.no_push)
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
     write_sync_state(workspace, fingerprint, head)
