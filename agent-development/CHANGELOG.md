@@ -36,3 +36,4 @@
 - подтверждено, что память и актуальные основные инструкции уже совпадали с зеркалом;
 - обновлены только реально расходившиеся вложенные копии `agent_files/agent-development/current-agent-instructions.md` и `agent_files/agent-development/agent-summary.md`;
 - локальная память оставлена первичным источником истины без обратной подмены из зеркала.
+- дополнительно выровнена переносимая копия `agent-development/current-agent-instructions.md`, чтобы она снова совпадала с актуальным корневым `AGENTS.md`.
