@@ -277,8 +277,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -338,8 +338,8 @@ def build_skills_index_readme() -> str:
             "",
             "При восстановлении похожего агента нужно перенести не только само упоминание навыка, но и связанный с ним контекст:",
             "",
-            "1. сам навык `glavlab-protocol-review`;",
-            "2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
+            "1. сам навык `glavlab-protocol-review`;
+            2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
             "3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;",
             "4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;",
             "5. материалы GitHub-зеркала, если навык или его рабочая логика там были дополнены.",
@@ -523,8 +523,16 @@ def read_sync_state(workspace: Path) -> str | None:
     state_path = workspace / SYNC_STATE_FILE_RELATIVE
     if not state_path.exists():
         return None
-    value = state_path.read_text(encoding="utf-8").strip()
-    return value or None
+    fingerprint: str | None = None
+    for raw_line in state_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key == "fingerprint":
+            fingerprint = value.strip() or None
+            break
+    return fingerprint
 
 
 def write_sync_state(workspace: Path, fingerprint: str, commit_sha: str) -> None:
