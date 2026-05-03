@@ -260,12 +260,12 @@ def build_agent_summary(protocols_dir: Path) -> str:
         "- перенос устойчивых знаний и шаблонов в GitHub-зеркало.",
         "",
         "Основные источники истины:",
-        "- инструкции агента из `AGENTS.md`;",
-        "- навык `glavlab-protocol-review`;",
-        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;",
-        "- память агента из папки `memory/`.",
-        "",
-        "Типы шаблонов, найденные в текущей среде:",
+        "- инструкции агента из `AGENTS.md`;
+- навык `glavlab-protocol-review`;
+- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;
+- память агента из папки `memory/`.
+
+Типы шаблонов, найденные в текущей среде:",
     ]
     if categories:
         for category in categories:
@@ -277,9 +277,9 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
-            "- память и экспорт подтвержденных правил.",
+            "- структуру `agent-development/`;
+- папку `protocols/` с шаблонами;
+- память и экспорт подтвержденных правил.",
         ]
     )
     return "\n".join(lines)
@@ -523,8 +523,13 @@ def read_sync_state(workspace: Path) -> str | None:
     state_path = workspace / SYNC_STATE_FILE_RELATIVE
     if not state_path.exists():
         return None
-    value = state_path.read_text(encoding="utf-8").strip()
-    return value or None
+    lines = state_path.read_text(encoding="utf-8").splitlines()
+    for line in lines:
+        if not line.startswith("fingerprint="):
+            continue
+        value = line.partition("=")[2].strip()
+        return value or None
+    return None
 
 
 def write_sync_state(workspace: Path, fingerprint: str, commit_sha: str) -> None:
@@ -583,12 +588,21 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     skills_index_dir.mkdir(parents=True, exist_ok=True)
     write_text(skills_index_dir / "README.md", build_skills_index_readme())
 
+    preserved_changelog: str | None = None
+    existing_changelog = agent_dev_dst / "CHANGELOG.md"
+    if existing_changelog.exists():
+        preserved_changelog = existing_changelog.read_text(encoding="utf-8")
+
     if agent_dev_dst.exists():
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
 
-    for file_name in ["CHANGELOG.md", "github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
+    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
         copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
+    if preserved_changelog is not None:
+        write_text(agent_dev_dst / "CHANGELOG.md", preserved_changelog)
+    else:
+        copy_file(agent_dev_src / "CHANGELOG.md", agent_dev_dst / "CHANGELOG.md")
 
     copy_tree(protocols_dir, agent_dev_dst / "protocols")
     write_text(agent_dev_dst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
@@ -624,7 +638,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         copy_file(source, target)
 
     write_text(agent_dev_dst / "current-agent-instructions.md", (workspace / "AGENTS.md").read_text(encoding="utf-8"))
-    write_text(agent_dev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
+    write_text(agent_dev_dst / "agent-summary.md", build_agentSummary(protocols_dir))
     write_text(
         agent_dev_dst / "confirmed-error-patterns.md",
         (memory_dir / "confirmed-error-patterns.md").read_text(encoding="utf-8")
@@ -646,7 +660,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     write_text(
         agent_dev_dst / "user-confirmed-corrections.md",
         (memory_dir / "user-confirmed-corrections.md").read_text(encoding="utf-8")
-        if (memory_dir / "user-confirmed-corrections.md").exists()
+        if (memorydir / "user-confirmed-corrections.md").exists()
         else build_placeholder("User Confirmed Corrections", "memory/user-confirmed-corrections.md"),
     )
 
