@@ -815,9 +815,9 @@ def main() -> int:
             "Экспорт работает только от текущей локальной памяти к зеркалу и не подставляет старые копии из служебных файлов."
         )
 
+    snapshot_dir = snapshot_memory_files(workspace)
     repo_dir = Path(args.repo_dir).resolve() if args.repo_dir else Path(tempfile.gettempdir()) / "agentglg-mirror-repo"
     clone_or_update_repo(repo_dir, args.branch)
-    snapshot_dir = snapshot_memory_files(workspace)
     regressions = detect_memory_regressions(repo_dir, workspace)
     if regressions and not args.allow_memory_overwrite:
         details = "\n".join(f"- {item}" for item in regressions)
