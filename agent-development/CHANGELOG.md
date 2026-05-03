@@ -37,3 +37,12 @@
 - обновлены только реально расходившиеся вложенные копии `agent_files/agent-development/current-agent-instructions.md` и `agent_files/agent-development/agent-summary.md`;
 - локальная память оставлена первичным источником истины без обратной подмены из зеркала.
 - дополнительно выровнена переносимая копия `agent-development/current-agent-instructions.md`, чтобы она снова совпадала с актуальным корневым `AGENTS.md`.
+
+## 2026-05-03
+
+### Экспорт в зеркало
+- повторно проверены первичные локальные источники: `/workspace/AGENTS.md`, `agent_files/` и память из `/workspace/memory`;
+- подтверждено, что ключевые файлы памяти и основные зеркальные инструкции уже совпадали с локальным состоянием;
+- найдены реальные расхождения только во вложенных служебных копиях внутри `agent_files/agent-development/`;
+- выровнены с локальной рабочей средой файлы `current-agent-instructions.md`, `agent-summary.md`, `files-index/attached-files-index.md`, `files-index/templates-index.md` и `CHANGELOG.md` в зеркальной ветке `agent_files/`;
+- локальная память снова сохранена как первичный источник истины без обратной подмены из GitHub-зеркала.
