@@ -366,6 +366,64 @@ def build_skills_index_readme() -> str:
     )
 
 
+def refresh_agent_files_service_dir(
+    target_dir: Path,
+    source_dir: Path,
+    workspace: Path,
+    protocols_dir: Path,
+    memory_dir: Path,
+    changelog_text: str | None,
+) -> None:
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    for file_name in ["github-export-bundle.md", "github-mirror-manifest.md", "recovery-plan.md"]:
+        source_path = source_dir / file_name
+        target_path = target_dir / file_name
+        if source_path.resolve() == target_path.resolve():
+            continue
+        copy_file(source_path, target_path)
+
+    if changelog_text is not None:
+        write_text(target_dir / "CHANGELOG.md", changelog_text)
+    else:
+        source_path = source_dir / "CHANGELOG.md"
+        target_path = target_dir / "CHANGELOG.md"
+        if source_path.resolve() != target_path.resolve():
+            copy_file(source_path, target_path)
+
+    write_text(
+        target_dir / "current-agent-instructions.md",
+        (workspace / "AGENTS.md").read_text(encoding="utf-8"),
+    )
+    write_text(target_dir / "agent-summary.md", build_agent_summary(protocols_dir))
+
+    files_index_dir = target_dir / "files-index"
+    files_index_dir.mkdir(parents=True, exist_ok=True)
+    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(workspace / "agent_files"))
+    write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
+
+    memory_exports_dir = target_dir / "memory-exports"
+    memory_exports_dir.mkdir(parents=True, exist_ok=True)
+    write_text(memory_exports_dir / "README.md", build_memory_export_readme())
+    export_map = {
+        "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
+        "missed-findings-log.md": "missed-findings-export.md",
+        "template-notes.md": "template-notes-export.md",
+        "user-confirmed-corrections.md": "user-corrections-export.md",
+    }
+    for memory_name, export_name in export_map.items():
+        source = memory_dir / memory_name
+        target = memory_exports_dir / export_name
+        if source.exists():
+            copy_file(source, target)
+        else:
+            write_text(target, build_placeholder(export_name.replace("-", " ").replace(".md", "").title(), memory_name))
+
+    skills_dir = target_dir / "skills"
+    skills_dir.mkdir(parents=True, exist_ok=True)
+    write_text(skills_dir / "README.md", build_skills_index_readme())
+
+
 def build_memory_index(memory_dir: Path) -> str:
     files = list_memory_markdown_files(memory_dir)
     lines = [
@@ -575,17 +633,6 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
             else:
                 child.unlink()
 
-    copied_agent_files_dev = repo_root / "agent_files" / "agent-development"
-    copied_agent_files_dev.mkdir(parents=True, exist_ok=True)
-    write_text(
-        copied_agent_files_dev / "current-agent-instructions.md",
-        (workspace / "AGENTS.md").read_text(encoding="utf-8"),
-    )
-    write_text(copied_agent_files_dev / "agent-summary.md", build_agent_summary(protocols_dir))
-    skills_index_dir = copied_agent_files_dev / "skills"
-    skills_index_dir.mkdir(parents=True, exist_ok=True)
-    write_text(skills_index_dir / "README.md", build_skills_index_readme())
-
     preserved_changelog = None
     changelog_path = agent_dev_dst / "CHANGELOG.md"
     if changelog_path.exists():
@@ -600,6 +647,15 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         write_text(agent_dev_dst / "CHANGELOG.md", preserved_changelog)
     else:
         copy_file(agent_dev_src / "CHANGELOG.md", agent_dev_dst / "CHANGELOG.md")
+
+    refresh_agent_files_service_dir(
+        target_dir=repo_root / "agent_files" / "agent-development",
+        source_dir=agent_dev_src,
+        workspace=workspace,
+        protocols_dir=protocols_dir,
+        memory_dir=memory_dir,
+        changelog_text=preserved_changelog,
+    )
 
     copy_tree(protocols_dir, agent_dev_dst / "protocols")
     write_text(agent_dev_dst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
