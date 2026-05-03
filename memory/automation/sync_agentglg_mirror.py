@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
+from textwrap import dedent
 
 REPO_URL = "https://github.com/betonglg-ux/Agentglg.git"
 DEFAULT_BRANCH = "main"
@@ -19,24 +19,10 @@ TOKEN_FILE_RELATIVE = Path("memory/agentglg-github-token.txt")
 PRIVATE_TOKEN_FILE_RELATIVE = Path("memory/automation/private/agentglg-github-token.txt")
 SYNC_STATE_FILE_RELATIVE = Path("memory/agentglg-sync-state.txt")
 MEMORY_SNAPSHOTS_DIR_RELATIVE = Path("memory/snapshots")
-WORKSPACE_EXCLUDE_TOP_LEVEL = {
-    ".git",
-    "user_files",
-}
-REPO_PROTECTED_TOP_LEVEL = {
-    ".git",
-    "agent-development",
-    "github-mirror-manifest.md",
-}
-WORKSPACE_EXCLUDE_DIR_NAMES = {
-    ".git",
-    ".arcade",
-    "__pycache__",
-}
-WORKSPACE_EXCLUDE_FILE_NAMES = {
-    "agentglg-github-token.txt",
-    "agentglg-sync-state.txt",
-}
+WORKSPACE_EXCLUDE_TOP_LEVEL = {".git", "user_files"}
+REPO_PROTECTED_TOP_LEVEL = {".git", "agent-development", "github-mirror-manifest.md"}
+WORKSPACE_EXCLUDE_DIR_NAMES = {".git", ".arcade", "__pycache__"}
+WORKSPACE_EXCLUDE_FILE_NAMES = {"agentglg-github-token.txt", "agentglg-sync-state.txt"}
 MEMORY_FILES = [
     "confirmed-error-patterns.md",
     "missed-findings-log.md",
@@ -46,32 +32,13 @@ MEMORY_FILES = [
 
 
 def run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        cmd,
-        cwd=str(cwd) if cwd else None,
-        text=True,
-        capture_output=True,
-    )
+    result = subprocess.run(cmd, cwd=str(cwd) if cwd else None, text=True, capture_output=True)
     if check and result.returncode != 0:
         stderr = (result.stderr or "").strip()
         stdout = (result.stdout or "").strip()
         details = stderr or stdout or f"exit code {result.returncode}"
         raise RuntimeError(f"Команда не выполнилась: {' '.join(cmd)}\n{details}")
     return result
-
-
-def ensure_clean_dir(path: Path) -> None:
-    if path.exists():
-        shutil.rmtree(path)
-    path.mkdir(parents=True, exist_ok=True)
-
-
-def copy_tree(src: Path, dst: Path, ignore: shutil.IgnorePattern | None = None) -> None:
-    if not src.exists():
-        return
-    if dst.exists():
-        shutil.rmtree(dst)
-    shutil.copytree(src, dst, ignore=ignore)
 
 
 def copy_file(src: Path, dst: Path) -> None:
@@ -81,19 +48,21 @@ def copy_file(src: Path, dst: Path) -> None:
     shutil.copy2(src, dst)
 
 
+def copy_tree(src: Path, dst: Path, ignore=None) -> None:
+    if not src.exists():
+        return
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst, ignore=ignore)
+
+
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text.rstrip() + "\n", encoding="utf-8")
 
 
 def normalize_significant_lines(text: str) -> list[str]:
-    lines: list[str] = []
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        lines.append(line)
-    return lines
+    return [line.strip() for line in text.splitlines() if line.strip()]
 
 
 def snapshot_memory_files(workspace: Path) -> Path | None:
@@ -101,47 +70,34 @@ def snapshot_memory_files(workspace: Path) -> Path | None:
     files_to_copy = [memory_dir / name for name in MEMORY_FILES if (memory_dir / name).exists()]
     if not files_to_copy:
         return None
-
     stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     snapshot_dir = workspace / MEMORY_SNAPSHOTS_DIR_RELATIVE / stamp
     snapshot_dir.mkdir(parents=True, exist_ok=True)
-
     for source in files_to_copy:
         copy_file(source, snapshot_dir / source.name)
-
-    manifest_lines = [
-        "# Memory Snapshot",
-        "",
-        f"- created_at_utc: `{stamp}`",
-        "- files:",
-    ]
-    for source in files_to_copy:
-        manifest_lines.append(f"  - `{source.name}`")
-    write_text(snapshot_dir / "README.md", "\n".join(manifest_lines))
+    lines = ["# Memory Snapshot", "", f"- created_at_utc: `{stamp}`", "- files:"]
+    lines.extend(f"  - `{source.name}`" for source in files_to_copy)
+    write_text(snapshot_dir / "README.md", "\n".join(lines))
     return snapshot_dir
 
 
 def detect_memory_regressions(repo_root: Path, workspace: Path) -> list[str]:
-    memory_dir = workspace / "memory"
     regressions: list[str] = []
-
+    memory_dir = workspace / "memory"
     for file_name in MEMORY_FILES:
         local_path = memory_dir / file_name
         remote_path = repo_root / "agent-development" / file_name
         if not local_path.exists() or not remote_path.exists():
             continue
-
         local_lines = set(normalize_significant_lines(local_path.read_text(encoding="utf-8")))
         remote_lines = set(normalize_significant_lines(remote_path.read_text(encoding="utf-8")))
         missing_lines = [line for line in sorted(remote_lines - local_lines) if len(line) > 4]
         if not missing_lines:
             continue
-
         preview = "; ".join(missing_lines[:3])
         if len(missing_lines) > 3:
             preview += f"; и ещё {len(missing_lines) - 3}"
         regressions.append(f"{file_name}: в зеркале есть строки, которых нет в локальной памяти: {preview}")
-
     return regressions
 
 
@@ -162,14 +118,12 @@ def format_protocols(protocols_dir: Path) -> str:
             if file_path.is_file():
                 lines.append(f"- `protocols/{category.name}/{file_path.name}`")
         lines.append("")
-    lines.extend(
-        [
-            "## Как использовать этот индекс",
-            "- использовать как контрольный список обязательных шаблонов при синхронизации;",
-            "- использовать как опорный список при восстановлении похожего агента;",
-            "- использовать для проверки, не потерялись ли шаблоны при обновлениях.",
-        ]
-    )
+    lines.extend([
+        "## Как использовать этот индекс",
+        "- использовать как контрольный список обязательных шаблонов при синхронизации;",
+        "- использовать как опорный список при восстановлении похожего агента;",
+        "- использовать для проверки, не потерялись ли шаблоны при обновлениях.",
+    ])
     return "\n".join(lines)
 
 
@@ -181,9 +135,7 @@ def list_memory_markdown_files(memory_dir: Path) -> list[Path]:
         if not path.is_file():
             continue
         rel = path.relative_to(memory_dir).as_posix()
-        if rel.startswith(".git/") or rel.startswith(".arcade/"):
-            continue
-        if rel.startswith("snapshots/"):
+        if rel.startswith(".git/") or rel.startswith(".arcade/") or rel.startswith("snapshots/"):
             continue
         files.append(path)
     return files
@@ -197,7 +149,6 @@ def format_attached_files_index(agent_files_dir: Path) -> str:
         if path.is_file()
     ) if (agent_files_dir / "agent-development").exists() else []
     xl_files = rel_files(agent_files_dir / "xl") if (agent_files_dir / "xl").exists() else []
-
     lines = [
         "# Индекс текущих файлов агента",
         "",
@@ -205,45 +156,34 @@ def format_attached_files_index(agent_files_dir: Path) -> str:
         "",
         "## 1. Служебные файлы развития агента",
     ]
-    if service_files:
-        for file_path in service_files:
-            lines.append(f"- `agent-development/{file_path.as_posix()}`")
-    else:
-        lines.append("- служебные файлы не найдены")
+    lines.extend(f"- `agent-development/{path.as_posix()}`" for path in service_files) if service_files else lines.append("- служебные файлы не найдены")
     lines.extend(["", "## 2. Папка `protocols/`"])
     if protocols_dir.exists():
         for category in sorted(p for p in protocols_dir.iterdir() if p.is_dir()):
             lines.append(f"### `protocols/{category.name}`")
-            for file_path in sorted(category.iterdir()):
-                if file_path.is_file():
-                    lines.append(f"- `{file_path.name}`")
+            lines.extend(f"- `{file_path.name}`" for file_path in sorted(category.iterdir()) if file_path.is_file())
             lines.append("")
     else:
-        lines.append("- папка `protocols/` не найдена")
-        lines.append("")
+        lines.extend(["- папка `protocols/` не найдена", ""])
     lines.extend(["## 3. Папка `xl/`", f"- файлов найдено: {len(xl_files)}", ""])
     if xl_files:
-        preview = xl_files[:20]
         lines.append("Первые файлы:")
-        for file_path in preview:
-            lines.append(f"- `xl/{file_path.as_posix()}`")
-        if len(xl_files) > len(preview):
-            lines.append(f"- и ещё {len(xl_files) - len(preview)} файлов")
+        lines.extend(f"- `xl/{path.as_posix()}`" for path in xl_files[:20])
+        if len(xl_files) > 20:
+            lines.append(f"- и ещё {len(xl_files) - 20} файлов")
         lines.append("")
-    lines.extend(
-        [
-            "## 4. Что означает эта структура",
-            "- `protocols/` хранит шаблоны протоколов, на которых держится сверка PDF;",
-            "- `agent-development/` хранит материалы для воспроизведения и развития агента;",
-            "- `xl/` хранит технические ресурсы, связанные с табличными материалами.",
-            "",
-            "## 5. Приоритеты зеркалирования",
-            "1. все шаблоны из `protocols/`;",
-            "2. служебные материалы из `agent-development/`;",
-            "3. память агента и экспорт устойчивых правил;",
-            "4. технические файлы, если они реально нужны для восстановления среды.",
-        ]
-    )
+    lines.extend([
+        "## 4. Что означает эта структура",
+        "- `protocols/` хранит шаблоны протоколов, на которых держится сверка PDF;",
+        "- `agent-development/` хранит материалы для воспроизведения и развития агента;",
+        "- `xl/` хранит технические ресурсы, связанные с табличными материалами.",
+        "",
+        "## 5. Приоритеты зеркалирования",
+        "1. все шаблоны из `protocols/`;",
+        "2. служебные материалы из `agent-development/`;",
+        "3. память агента и экспорт устойчивых правил;",
+        "4. технические файлы, если они реально нужны для восстановления среды.",
+    ])
     return "\n".join(lines)
 
 
@@ -267,103 +207,97 @@ def build_agent_summary(protocols_dir: Path) -> str:
         "",
         "Типы шаблонов, найденные в текущей среде:",
     ]
-    if categories:
-        for category in categories:
-            lines.append(f"- {category}")
-    else:
-        lines.append("- шаблоны не обнаружены")
-    lines.extend(
-        [
-            "",
-            "Что нужно воспроизводить в будущем:",
-            "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
-            "- память и экспорт подтвержденных правил.",
-        ]
-    )
+    lines.extend(f"- {category}" for category in categories) if categories else lines.append("- шаблоны не обнаружены")
+    lines.extend([
+        "",
+        "Что нужно воспроизводить в будущем:",
+        "- инструкции агента;",
+        "- структуру `agent-development/`;",
+        "- папку `protocols/` с шаблонами;",
+        "- память и экспорт подтвержденных правил.",
+    ])
     return "\n".join(lines)
 
 
 def build_memory_export_readme() -> str:
-    return "\n".join(
-        [
-            "# Memory Exports",
-            "",
-            "Эта папка хранит переносимые выгрузки из памяти агента.",
-            "",
-            "Правило:",
-            "- если в памяти уже есть устойчивое знание, его нужно дублировать сюда в читаемом виде;",
-            "- если память ещё не заполнена, здесь остаются заготовки для будущих экспортов.",
-        ]
-    )
+    return dedent(
+        """
+        # Memory Exports
+
+        Эта папка хранит переносимые выгрузки из памяти агента.
+
+        Правило:
+        - если в памяти уже есть устойчивое знание, его нужно дублировать сюда в читаемом виде;
+        - если память ещё не заполнена, здесь остаются заготовки для будущих экспортов.
+        """
+    ).strip()
 
 
 def build_skills_index_readme() -> str:
-    return "\n".join(
-        [
-            "# Индекс навыков для переноса",
-            "",
-            "Назначение: этот файл фиксирует навыки, которые используются текущим агентом, и описывает, что нужно восстановить при создании будущего похожего агента.",
-            "",
-            "## 1. Обязательный навык",
-            "",
-            "### `glavlab-protocol-review`",
-            "- Тип: прикреплённый загруженный навык",
-            "- Роль: основной регламент проверки строительных PDF-протоколов",
-            "- Статус: критически важен для корректной работы агента",
-            "",
-            "## 2. За что отвечает навык",
-            "",
-            "Навык `glavlab-protocol-review` используется как главный регламент проверки и определяет базовую логику работы агента при анализе PDF-протоколов.",
-            "",
-            "Он нужен для задач вида:",
-            "- проверка одного или нескольких PDF-протоколов;",
-            "- разбиение PDF на отдельные протоколы;",
-            "- проверка оформления, структуры и расчётов;",
-            "- поиск дефектов в колонтитулах, таблицах, рамках, нумерации и полях;",
-            "- формирование постраничного отчёта по ошибкам и замечаниям.",
-            "",
-            "## 3. Почему этот навык обязателен",
-            "",
-            "Без этого навыка агент теряет основной регламент проверки.",
-            "",
-            "Даже если инструкции агента сохранены отдельно, именно этот навык остаётся главным источником специализированной логики:",
-            "- как интерпретировать задачу проверки;",
-            "- как находить и классифицировать ошибки;",
-            "- как работать с несколькими протоколами в одном PDF;",
-            "- как формировать структурированный результат.",
-            "",
-            "## 4. Что нужно перенести вместе с навыком",
-            "",
-            "При восстановлении похожего агента нужно перенести не только само упоминание навыка, но и связанный с ним контекст:",
-            "",
-            "1. сам навык `glavlab-protocol-review`;
-            "2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
-            "3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;",
-            "4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;",
-            "5. материалы GitHub-зеркала, если навык или его рабочая логика там были дополнены.",
-            "",
-            "## 5. Минимальный комплект для клонирования агента",
-            "",
-            "Если создаётся новый похожий агент, нужно восстановить в первую очередь:",
-            "- `agent-development/current-agent-instructions.md`",
-            "- навык `glavlab-protocol-review`",
-            "- папку `protocols/`",
-            "- ключевые данные из Memory и GitHub-зеркала",
-            "",
-            "## 6. Что стоит добавить позже",
-            "",
-            "При следующем этапе инвентаризации желательно дополнить этот индекс:",
-            "- экспортом текста самого навыка;",
-            "- структурой внутренних файлов навыка, если она доступна;",
-            "- списком связанных шаблонов и примеров, которые особенно важны для его работы.",
-            "",
-            "## 7. Вывод",
-            "",
-            "Для будущих агентов навык `glavlab-protocol-review` нужно считать обязательным компонентом ядра. Новый агент без него не будет полноценной копией текущего.",
-        ]
-    )
+    return dedent(
+        """
+        # Индекс навыков для переноса
+
+        Назначение: этот файл фиксирует навыки, которые используются текущим агентом, и описывает, что нужно восстановить при создании будущего похожего агента.
+
+        ## 1. Обязательный навык
+
+        ### `glavlab-protocol-review`
+        - Тип: прикреплённый загруженный навык
+        - Роль: основной регламент проверки строительных PDF-протоколов
+        - Статус: критически важен для корректной работы агента
+
+        ## 2. За что отвечает навык
+
+        Навык `glavlab-protocol-review` используется как главный регламент проверки и определяет базовую логику работы агента при анализе PDF-протоколов.
+
+        Он нужен для задач вида:
+        - проверка одного или нескольких PDF-протоколов;
+        - разбиение PDF на отдельные протоколы;
+        - проверка оформления, структуры и расчётов;
+        - поиск дефектов в колонтитулах, таблицах, рамках, нумерации и полях;
+        - формирование постраничного отчёта по ошибкам и замечаниям.
+
+        ## 3. Почему этот навык обязателен
+
+        Без этого навыка агент теряет основной регламент проверки.
+
+        Даже если инструкции агента сохранены отдельно, именно этот навык остаётся главным источником специализированной логики:
+        - как интерпретировать задачу проверки;
+        - как находить и классифицировать ошибки;
+        - как работать с несколькими протоколами в одном PDF;
+        - как формировать структурированный результат.
+
+        ## 4. Что нужно перенести вместе с навыком
+
+        При восстановлении похожего агента нужно перенести не только само упоминание навыка, но и связанный с ним контекст:
+
+        1. сам навык `glavlab-protocol-review`;
+        2. инструкции агента, которые ссылаются на этот навык как на основной регламент;
+        3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;
+        4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;
+        5. материалы GitHub-зеркала, если навык или его рабочая логика там были дополнены.
+
+        ## 5. Минимальный комплект для клонирования агента
+
+        Если создаётся новый похожий агент, нужно восстановить в первую очередь:
+        - `agent-development/current-agent-instructions.md`
+        - навык `glavlab-protocol-review`
+        - папку `protocols/`
+        - ключевые данные из Memory и GitHub-зеркала
+
+        ## 6. Что стоит добавить позже
+
+        При следующем этапе инвентаризации желательно дополнить этот индекс:
+        - экспортом текста самого навыка;
+        - структурой внутренних файлов навыка, если она доступна;
+        - списком связанных шаблонов и примеров, которые особенно важны для его работы.
+
+        ## 7. Вывод
+
+        Для будущих агентов навык `glavlab-protocol-review` нужно считать обязательным компонентом ядра. Новый агент без него не будет полноценной копией текущего.
+        """
+    ).strip()
 
 
 def build_memory_index(memory_dir: Path) -> str:
@@ -374,85 +308,60 @@ def build_memory_index(memory_dir: Path) -> str:
         "Этот файл автоматически показывает, какие markdown-файлы реально есть в памяти агента и были выгружены в зеркало.",
         "",
     ]
-    if not files:
-        lines.append("- markdown-файлы в памяти пока не найдены")
-        return "\n".join(lines)
-    for path in files:
-        rel = path.relative_to(memory_dir).as_posix()
-        lines.append(f"- `memory/{rel}`")
+    lines.extend(f"- `memory/{path.relative_to(memory_dir).as_posix()}`" for path in files) if files else lines.append("- markdown-файлы в памяти пока не найдены")
     return "\n".join(lines)
 
 
 def build_placeholder(title: str, source_name: str) -> str:
-    return "\n".join(
-        [
-            f"# {title}",
-            "",
-            f"Статус на {dt.date.today().isoformat()}: подтвержденные данные пока не выгружены в отдельный файл.",
-            "",
-            "Этот файл создан автоматически как точка для дальнейшего накопления знаний.",
-            f"Основной источник для следующего заполнения: `{source_name}`.",
-        ]
-    )
+    return dedent(
+        f"""
+        # {title}
+
+        Статус на {dt.date.today().isoformat()}: подтвержденные данные пока не выгружены в отдельный файл.
+
+        Этот файл создан автоматически как точка для дальнейшего накопления знаний.
+        Основной источник для следующего заполнения: `{source_name}`.
+        """
+    ).strip()
 
 
 def append_sync_changelog(changelog_path: Path) -> None:
     today = dt.datetime.now(dt.UTC).date().isoformat()
-    sync_line = f"- выполнен автоматический экспорт в GitHub-зеркало и пересборка служебных индексов."
+    sync_line = "- выполнен автоматический экспорт в GitHub-зеркало и пересборка служебных индексов."
     if changelog_path.exists():
         existing = changelog_path.read_text(encoding="utf-8")
     else:
         existing = "# CHANGELOG GitHub-зеркала\n\nРепозиторий зеркала: `betonglg-ux/Agentglg`\n"
-
     marker = f"## {today}"
     if marker not in existing:
         existing = existing.rstrip() + f"\n\n## {today}\n\n### Экспорт в зеркало\n{sync_line}\n"
     elif sync_line not in existing:
         existing = existing.rstrip() + f"\n{sync_line}\n"
-    changelog_path.write_text(existing.rstrip() + "\n", encoding="utf-8")
+    write_text(changelog_path, existing)
 
 
 def load_token(workspace: Path) -> str | None:
     env_token = os.getenv("AGENTGLG_GITHUB_TOKEN") or os.getenv("GITHUB_TOKEN")
     if env_token:
         return env_token.strip()
-    private_token_file = workspace / PRIVATE_TOKEN_FILE_RELATIVE
-    if private_token_file.exists():
-        token = private_token_file.read_text(encoding="utf-8").strip()
-        if token:
-            return token
-    token_file = workspace / TOKEN_FILE_RELATIVE
-    if token_file.exists():
-        token = token_file.read_text(encoding="utf-8").strip()
-        if token:
-            return token
+    for relative in [PRIVATE_TOKEN_FILE_RELATIVE, TOKEN_FILE_RELATIVE]:
+        path = workspace / relative
+        if path.exists():
+            token = path.read_text(encoding="utf-8").strip()
+            if token:
+                return token
     return None
 
 
 def ensure_git_auth(token: str) -> None:
     run(["git", "config", "--global", "credential.helper", "store"])
     payload = f"protocol=https\nhost=github.com\nusername=x-access-token\npassword={token}\n\n"
-    subprocess.run(
-        ["git", "credential", "approve"],
-        input=payload,
-        text=True,
-        check=True,
-        capture_output=True,
-    )
+    subprocess.run(["git", "credential", "approve"], input=payload, text=True, check=True, capture_output=True)
 
 
 def has_git_github_credentials() -> bool:
-    result = subprocess.run(
-        ["git", "credential", "fill"],
-        input="protocol=https\nhost=github.com\n\n",
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        return False
-    output = result.stdout
-    return "username=" in output and "password=" in output
+    result = subprocess.run(["git", "credential", "fill"], input="protocol=https\nhost=github.com\n\n", text=True, capture_output=True, check=False)
+    return result.returncode == 0 and "username=" in result.stdout and "password=" in result.stdout
 
 
 def should_skip_workspace_relative(rel: Path) -> bool:
@@ -462,48 +371,30 @@ def should_skip_workspace_relative(rel: Path) -> bool:
     rel_text = rel.as_posix()
     if parts[0] in WORKSPACE_EXCLUDE_TOP_LEVEL:
         return True
-    if rel_text.startswith("memory/automation/private/"):
-        return True
-    if rel_text.startswith("memory/snapshots/"):
+    if rel_text.startswith("memory/automation/private/") or rel_text.startswith("memory/snapshots/"):
         return True
     if any(part in WORKSPACE_EXCLUDE_DIR_NAMES for part in parts[:-1]):
         return True
-    if parts[-1] in WORKSPACE_EXCLUDE_FILE_NAMES:
-        return True
-    if parts[-1].startswith("agentglg-github-token"):
+    if parts[-1] in WORKSPACE_EXCLUDE_FILE_NAMES or parts[-1].startswith("agentglg-github-token"):
         return True
     return False
-
-
-def list_workspace_paths(workspace: Path) -> list[Path]:
-    paths: list[Path] = []
-    for path in sorted(workspace.rglob("*")):
-        rel = path.relative_to(workspace)
-        if should_skip_workspace_relative(rel):
-            continue
-        paths.append(path)
-    return paths
 
 
 def build_workspace_copy_ignore(workspace: Path):
     def _ignore(dir_path: str, names: list[str]) -> set[str]:
         current = Path(dir_path)
-        ignored: set[str] = set()
-        for name in names:
-            rel = (current / name).relative_to(workspace)
-            if should_skip_workspace_relative(rel):
-                ignored.add(name)
-        return ignored
-
+        return {
+            name for name in names
+            if should_skip_workspace_relative((current / name).relative_to(workspace))
+        }
     return _ignore
 
 
 def iter_sync_inputs(workspace: Path) -> list[Path]:
-    files: list[Path] = []
-    for path in list_workspace_paths(workspace):
-        if path.is_file():
-            files.append(path)
-    return files
+    return [
+        path for path in sorted(workspace.rglob("*"))
+        if path.is_file() and not should_skip_workspace_relative(path.relative_to(workspace))
+    ]
 
 
 def compute_workspace_fingerprint(workspace: Path) -> str:
@@ -532,11 +423,7 @@ def read_sync_state(workspace: Path) -> str | None:
 
 def write_sync_state(workspace: Path, fingerprint: str, commit_sha: str) -> None:
     state_path = workspace / SYNC_STATE_FILE_RELATIVE
-    state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(
-        f"fingerprint={fingerprint}\ncommit={commit_sha}\nupdated_at={dt.datetime.now(dt.UTC).isoformat()}\n",
-        encoding="utf-8",
-    )
+    write_text(state_path, f"fingerprint={fingerprint}\ncommit={commit_sha}\nupdated_at={dt.datetime.now(dt.UTC).isoformat()}")
 
 
 def prepare_repo(repo_root: Path, workspace: Path) -> None:
@@ -545,51 +432,34 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     protocols_dir = agent_files / "protocols"
     agent_dev_src = agent_files / "agent-development"
     agent_dev_dst = repo_root / "agent-development"
-
     ignore_workspace = build_workspace_copy_ignore(workspace)
-    tracked_top_level = set()
+
+    tracked_top_level: set[str] = set()
     for child in sorted(workspace.iterdir()):
-        name = child.name
-        if name in WORKSPACE_EXCLUDE_TOP_LEVEL:
+        if child.name in WORKSPACE_EXCLUDE_TOP_LEVEL:
             continue
-        tracked_top_level.add(name)
-        target = repo_root / name
+        tracked_top_level.add(child.name)
+        target = repo_root / child.name
         if child.is_dir():
-            if target.exists():
-                shutil.rmtree(target)
-            shutil.copytree(
-                child,
-                target,
-                ignore=ignore_workspace,
-            )
+            copy_tree(child, target, ignore=ignore_workspace)
         else:
             copy_file(child, target)
 
-    for child in repo_root.iterdir():
-        name = child.name
-        if name in REPO_PROTECTED_TOP_LEVEL:
+    for child in list(repo_root.iterdir()):
+        if child.name in REPO_PROTECTED_TOP_LEVEL or child.name in tracked_top_level:
             continue
-        if name not in tracked_top_level:
-            if child.is_dir():
-                shutil.rmtree(child)
-            else:
-                child.unlink()
+        if child.is_dir():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
 
     copied_agent_files_dev = repo_root / "agent_files" / "agent-development"
     copied_agent_files_dev.mkdir(parents=True, exist_ok=True)
-    write_text(
-        copied_agent_files_dev / "current-agent-instructions.md",
-        (workspace / "AGENTS.md").read_text(encoding="utf-8"),
-    )
+    write_text(copied_agent_files_dev / "current-agent-instructions.md", (workspace / "AGENTS.md").read_text(encoding="utf-8"))
     write_text(copied_agent_files_dev / "agent-summary.md", build_agent_summary(protocols_dir))
-    skills_index_dir = copied_agent_files_dev / "skills"
-    skills_index_dir.mkdir(parents=True, exist_ok=True)
-    write_text(skills_index_dir / "README.md", build_skills_index_readme())
+    write_text(copied_agent_files_dev / "skills" / "README.md", build_skills_index_readme())
 
-    preserved_changelog = None
-    changelog_path = agent_dev_dst / "CHANGELOG.md"
-    if changelog_path.exists():
-        preserved_changelog = changelog_path.read_text(encoding="utf-8")
+    preserved_changelog = (agent_dev_dst / "CHANGELOG.md").read_text(encoding="utf-8") if (agent_dev_dst / "CHANGELOG.md").exists() else None
     if agent_dev_dst.exists():
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
@@ -603,72 +473,41 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
 
     copy_tree(protocols_dir, agent_dev_dst / "protocols")
     write_text(agent_dev_dst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
+    write_text(agent_dev_dst / "files-index" / "README.md", "# Files Index\n\nЭтот раздел автоматически собирается при экспорте в зеркало.")
+    write_text(agent_dev_dst / "files-index" / "attached-files-index.md", format_attached_files_index(agent_files))
+    write_text(agent_dev_dst / "files-index" / "templates-index.md", format_protocols(protocols_dir))
+    write_text(agent_dev_dst / "memory-exports" / "README.md", build_memory_export_readme())
+    write_text(agent_dev_dst / "memory-exports" / "memory-index.md", build_memory_index(memory_dir))
 
-    files_index_dir = agent_dev_dst / "files-index"
-    files_index_dir.mkdir(parents=True, exist_ok=True)
-    write_text(files_index_dir / "README.md", "# Files Index\n\nЭтот раздел автоматически собирается при экспорте в зеркало.")
-    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(agent_files))
-    write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
-
-    memory_exports_dir = agent_dev_dst / "memory-exports"
-    memory_exports_dir.mkdir(parents=True, exist_ok=True)
-    write_text(memory_exports_dir / "README.md", build_memory_export_readme())
-    write_text(memory_exports_dir / "memory-index.md", build_memory_index(memory_dir))
     export_map = {
         "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
         "missed-findings-log.md": "missed-findings-export.md",
         "template-notes.md": "template-notes-export.md",
         "user-confirmed-corrections.md": "user-corrections-export.md",
     }
-    for memory_name, export_name in export_map.items():
-        source = memory_dir / memory_name
-        target = memory_exports_dir / export_name
+    for source_name, export_name in export_map.items():
+        source = memory_dir / source_name
+        target = agent_dev_dst / "memory-exports" / export_name
         if source.exists():
             copy_file(source, target)
         else:
-            write_text(target, build_placeholder(export_name.replace("-", " ").replace(".md", "").title(), memory_name))
+            write_text(target, build_placeholder(export_name.replace("-", " ").replace(".md", "").title(), source_name))
 
-    raw_memory_dir = memory_exports_dir / "raw-memory"
+    raw_memory_dir = agent_dev_dst / "memory-exports" / "raw-memory"
     raw_memory_dir.mkdir(parents=True, exist_ok=True)
     for source in list_memory_markdown_files(memory_dir):
-        target = raw_memory_dir / source.relative_to(memory_dir)
-        copy_file(source, target)
+        copy_file(source, raw_memory_dir / source.relative_to(memory_dir))
 
     write_text(agent_dev_dst / "current-agent-instructions.md", (workspace / "AGENTS.md").read_text(encoding="utf-8"))
     write_text(agent_dev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
-    write_text(
-        agent_dev_dst / "confirmed-error-patterns.md",
-        (memory_dir / "confirmed-error-patterns.md").read_text(encoding="utf-8")
-        if (memory_dir / "confirmed-error-patterns.md").exists()
-        else build_placeholder("Confirmed Error Patterns", "memory/confirmed-error-patterns.md"),
-    )
-    write_text(
-        agent_dev_dst / "missed-findings-log.md",
-        (memory_dir / "missed-findings-log.md").read_text(encoding="utf-8")
-        if (memory_dir / "missed-findings-log.md").exists()
-        else build_placeholder("Missed Findings Log", "memory/missed-findings-log.md"),
-    )
-    write_text(
-        agent_dev_dst / "template-notes.md",
-        (memory_dir / "template-notes.md").read_text(encoding="utf-8")
-        if (memory_dir / "template-notes.md").exists()
-        else build_placeholder("Template Notes", "memory/template-notes.md"),
-    )
-    write_text(
-        agent_dev_dst / "user-confirmed-corrections.md",
-        (memory_dir / "user-confirmed-corrections.md").read_text(encoding="utf-8")
-        if (memory_dir / "user-confirmed-corrections.md").exists()
-        else build_placeholder("User Confirmed Corrections", "memory/user-confirmed-corrections.md"),
-    )
+    for file_name in MEMORY_FILES:
+        source = memory_dir / file_name
+        title = file_name.replace(".md", "").replace("-", " ").title()
+        write_text(agent_dev_dst / file_name, source.read_text(encoding="utf-8") if source.exists() else build_placeholder(title, f"memory/{file_name}"))
 
-    skills_dir = agent_dev_dst / "skills"
-    skills_dir.mkdir(parents=True, exist_ok=True)
-    write_text(
-        skills_dir / "README.md",
-        "# Skills\n\nЭта папка автоматически собирает ключевые навыки, которые нужно переносить вместе с агентом.",
-    )
+    write_text(agent_dev_dst / "skills" / "README.md", "# Skills\n\nЭта папка автоматически собирает ключевые навыки, которые нужно переносить вместе с агентом.")
     if SKILL_PATH.exists():
-        copy_file(SKILL_PATH, skills_dir / "glavlab-protocol-review" / "SKILL.md")
+        copy_file(SKILL_PATH, agent_dev_dst / "skills" / "glavlab-protocol-review" / "SKILL.md")
 
     manifest_src = agent_dev_src / "github-mirror-manifest.md"
     if manifest_src.exists():
@@ -690,8 +529,7 @@ def clone_or_update_repo(repo_root: Path, branch: str) -> None:
 
 
 def git_has_changes(repo_root: Path) -> bool:
-    result = run(["git", "status", "--porcelain"], cwd=repo_root)
-    return bool(result.stdout.strip())
+    return bool(run(["git", "status", "--porcelain"], cwd=repo_root).stdout.strip())
 
 
 def git_commit_and_push(repo_root: Path, branch: str, message: str, do_push: bool) -> None:
@@ -714,11 +552,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--message", default="Export agent mirror from workspace", help="Сообщение коммита")
     parser.add_argument("--no-push", action="store_true", help="Подготовить и закоммитить изменения без отправки в GitHub")
     parser.add_argument("--only-if-changed", action="store_true", help="Запускать экспорт только если рабочие файлы изменились")
-    parser.add_argument(
-        "--allow-memory-overwrite",
-        action="store_true",
-        help="Разрешить экспорт даже если в зеркале найдены строки памяти, которых нет локально",
-    )
+    parser.add_argument("--allow-memory-overwrite", action="store_true", help="Разрешить экспорт даже если в зеркале найдены строки памяти, которых нет локально")
     return parser.parse_args()
 
 
@@ -739,9 +573,7 @@ def main() -> int:
     token = load_token(workspace)
     if token:
         ensure_git_auth(token)
-    elif has_git_github_credentials():
-        pass
-    elif not args.no_push:
+    elif not has_git_github_credentials() and not args.no_push:
         print(
             "Не найден токен GitHub. Задайте AGENTGLG_GITHUB_TOKEN/GITHUB_TOKEN "
             f"или сохраните токен в {workspace / PRIVATE_TOKEN_FILE_RELATIVE} "
@@ -773,6 +605,7 @@ def main() -> int:
             "Не обновляйте локальную память автоматически из зеркала.\n"
             "Сначала вручную сравните локальную память, защитный снимок и подтвержденные пользователем правки, затем повторите запуск."
         )
+
     prepare_repo(repo_dir, workspace)
     if git_has_changes(repo_dir):
         append_sync_changelog(repo_dir / "agent-development" / "CHANGELOG.md")
