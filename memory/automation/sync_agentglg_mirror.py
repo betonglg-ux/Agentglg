@@ -467,7 +467,7 @@ def should_skip_workspace_relative(rel: Path) -> bool:
     if rel_text.startswith("memory/snapshots/"):
         return True
     if any(part in WORKSPACE_EXCLUDE_DIR_NAMES for part in parts[:-1]):
-            return True
+        return True
     if parts[-1] in WORKSPACE_EXCLUDE_FILE_NAMES:
         return True
     if parts[-1].startswith("agentglg-github-token"):
@@ -523,16 +523,8 @@ def read_sync_state(workspace: Path) -> str | None:
     state_path = workspace / SYNC_STATE_FILE_RELATIVE
     if not state_path.exists():
         return None
-    fingerprint: str | None = None
-    for raw_line in state_path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        if key == "fingerprint":
-            fingerprint = value.strip() or None
-            break
-    return fingerprint
+    value = state_path.read_text(encoding="utf-8").strip()
+    return value or None
 
 
 def write_sync_state(workspace: Path, fingerprint: str, commit_sha: str) -> None:
