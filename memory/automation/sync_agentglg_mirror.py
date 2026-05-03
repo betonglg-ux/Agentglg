@@ -396,6 +396,99 @@ def build_placeholder(title: str, source_name: str) -> str:
     )
 
 
+def render_agent_development(
+    target_dir: Path,
+    *,
+    workspace: Path,
+    protocols_dir: Path,
+    memory_dir: Path,
+    manifest_src: Path,
+    changelog_text: str | None,
+) -> None:
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
+        copy_file(manifest_src.parent / file_name, target_dir / file_name)
+
+    if changelog_text is not None:
+        write_text(target_dir / "CHANGELOG.md", changelog_text)
+    else:
+        copy_file(manifest_src.parent / "CHANGELOG.md", target_dir / "CHANGELOG.md")
+
+    copy_tree(protocols_dir, target_dir / "protocols")
+    write_text(target_dir / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
+
+    files_index_dir = target_dir / "files-index"
+    files_index_dir.mkdir(parents=True, exist_ok=True)
+    write_text(files_index_dir / "README.md", "# Files Index\n\nЭтот раздел автоматически собирается при экспорте в зеркало.")
+    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(protocols_dir.parent))
+    write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
+
+    memory_exports_dir = target_dir / "memory-exports"
+    memory_exports_dir.mkdir(parents=True, exist_ok=True)
+    write_text(memory_exports_dir / "README.md", build_memory_export_readme())
+    write_text(memory_exports_dir / "memory-index.md", build_memory_index(memory_dir))
+    export_map = {
+        "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
+        "missed-findings-log.md": "missed-findings-export.md",
+        "template-notes.md": "template-notes-export.md",
+        "user-confirmed-corrections.md": "user-corrections-export.md",
+    }
+    for memory_name, export_name in export_map.items():
+        source = memory_dir / memory_name
+        target = memory_exports_dir / export_name
+        if source.exists():
+            copy_file(source, target)
+        else:
+            write_text(target, build_placeholder(export_name.replace("-", " ").replace(".md", "").title(), memory_name))
+
+    raw_memory_dir = memory_exports_dir / "raw-memory"
+    raw_memory_dir.mkdir(parents=True, exist_ok=True)
+    for source in list_memory_markdown_files(memory_dir):
+        target = raw_memory_dir / source.relative_to(memory_dir)
+        copy_file(source, target)
+
+    write_text(target_dir / "current-agent-instructions.md", (workspace / "AGENTS.md").read_text(encoding="utf-8"))
+    write_text(target_dir / "agent-summary.md", build_agent_summary(protocols_dir))
+    write_text(
+        target_dir / "confirmed-error-patterns.md",
+        (memory_dir / "confirmed-error-patterns.md").read_text(encoding="utf-8")
+        if (memory_dir / "confirmed-error-patterns.md").exists()
+        else build_placeholder("Confirmed Error Patterns", "memory/confirmed-error-patterns.md"),
+    )
+    write_text(
+        target_dir / "missed-findings-log.md",
+        (memory_dir / "missed-findings-log.md").read_text(encoding="utf-8")
+        if (memory_dir / "missed-findings-log.md").exists()
+        else build_placeholder("Missed Findings Log", "memory/missed-findings-log.md"),
+    )
+    write_text(
+        target_dir / "template-notes.md",
+        (memory_dir / "template-notes.md").read_text(encoding="utf-8")
+        if (memory_dir / "template-notes.md").exists()
+        else build_placeholder("Template Notes", "memory/template-notes.md"),
+    )
+    write_text(
+        target_dir / "user-confirmed-corrections.md",
+        (memory_dir / "user-confirmed-corrections.md").read_text(encoding="utf-8")
+        if (memory_dir / "user-confirmed-corrections.md").exists()
+        else build_placeholder("User Confirmed Corrections", "memory/user-confirmed-corrections.md"),
+    )
+
+    skills_dir = target_dir / "skills"
+    skills_dir.mkdir(parents=True, exist_ok=True)
+    write_text(
+        skills_dir / "README.md",
+        "# Skills\n\nЭта папка автоматически собирает ключевые навыки, которые нужно переносить вместе с агентом.",
+    )
+    if SKILL_PATH.exists():
+        copy_file(SKILL_PATH, skills_dir / "glavlab-protocol-review" / "SKILL.md")
+
+    copy_file(manifest_src, target_dir / "github-mirror-manifest.md")
+
+
 def append_sync_changelog(changelog_path: Path) -> None:
     today = dt.datetime.now(dt.UTC).date().isoformat()
     sync_line = f"- выполнен автоматический экспорт в GitHub-зеркало и пересборка служебных индексов."
@@ -425,6 +518,7 @@ def load_token(workspace: Path) -> str | None:
     if token_file.exists():
         token = token_file.read_text(encoding="utf-8").strip()
         if token:
+            return token
             return token
     return None
 
@@ -575,100 +669,28 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
             else:
                 child.unlink()
 
-    copied_agent_files_dev = repo_root / "agent_files" / "agent-development"
-    copied_agent_files_dev.mkdir(parents=True, exist_ok=True)
-    write_text(
-        copied_agent_files_dev / "current-agent-instructions.md",
-        (workspace / "AGENTS.md").read_text(encoding="utf-8"),
-    )
-    write_text(copied_agent_files_dev / "agent-summary.md", build_agent_summary(protocols_dir))
-    skills_index_dir = copied_agent_files_dev / "skills"
-    skills_index_dir.mkdir(parents=True, exist_ok=True)
-    write_text(skills_index_dir / "README.md", build_skills_index_readme())
-
     preserved_changelog = None
     changelog_path = agent_dev_dst / "CHANGELOG.md"
     if changelog_path.exists():
         preserved_changelog = changelog_path.read_text(encoding="utf-8")
-    if agent_dev_dst.exists():
-        shutil.rmtree(agent_dev_dst)
-    agent_dev_dst.mkdir(parents=True, exist_ok=True)
-
-    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
-        copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
-    if preserved_changelog is not None:
-        write_text(agent_dev_dst / "CHANGELOG.md", preserved_changelog)
-    else:
-        copy_file(agent_dev_src / "CHANGELOG.md", agent_dev_dst / "CHANGELOG.md")
-
-    copy_tree(protocols_dir, agent_dev_dst / "protocols")
-    write_text(agent_dev_dst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
-
-    files_index_dir = agent_dev_dst / "files-index"
-    files_index_dir.mkdir(parents=True, exist_ok=True)
-    write_text(files_index_dir / "README.md", "# Files Index\n\nЭтот раздел автоматически собирается при экспорте в зеркало.")
-    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(agent_files))
-    write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
-
-    memory_exports_dir = agent_dev_dst / "memory-exports"
-    memory_exports_dir.mkdir(parents=True, exist_ok=True)
-    write_text(memory_exports_dir / "README.md", build_memory_export_readme())
-    write_text(memory_exports_dir / "memory-index.md", build_memory_index(memory_dir))
-    export_map = {
-        "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
-        "missed-findings-log.md": "missed-findings-export.md",
-        "template-notes.md": "template-notes-export.md",
-        "user-confirmed-corrections.md": "user-corrections-export.md",
-    }
-    for memory_name, export_name in export_map.items():
-        source = memory_dir / memory_name
-        target = memory_exports_dir / export_name
-        if source.exists():
-            copy_file(source, target)
-        else:
-            write_text(target, build_placeholder(export_name.replace("-", " ").replace(".md", "").title(), memory_name))
-
-    raw_memory_dir = memory_exports_dir / "raw-memory"
-    raw_memory_dir.mkdir(parents=True, exist_ok=True)
-    for source in list_memory_markdown_files(memory_dir):
-        target = raw_memory_dir / source.relative_to(memory_dir)
-        copy_file(source, target)
-
-    write_text(agent_dev_dst / "current-agent-instructions.md", (workspace / "AGENTS.md").read_text(encoding="utf-8"))
-    write_text(agent_dev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
-    write_text(
-        agent_dev_dst / "confirmed-error-patterns.md",
-        (memory_dir / "confirmed-error-patterns.md").read_text(encoding="utf-8")
-        if (memory_dir / "confirmed-error-patterns.md").exists()
-        else build_placeholder("Confirmed Error Patterns", "memory/confirmed-error-patterns.md"),
-    )
-    write_text(
-        agent_dev_dst / "missed-findings-log.md",
-        (memory_dir / "missed-findings-log.md").read_text(encoding="utf-8")
-        if (memory_dir / "missed-findings-log.md").exists()
-        else build_placeholder("Missed Findings Log", "memory/missed-findings-log.md"),
-    )
-    write_text(
-        agent_dev_dst / "template-notes.md",
-        (memory_dir / "template-notes.md").read_text(encoding="utf-8")
-        if (memory_dir / "template-notes.md").exists()
-        else build_placeholder("Template Notes", "memory/template-notes.md"),
-    )
-    write_text(
-        agent_dev_dst / "user-confirmed-corrections.md",
-        (memory_dir / "user-confirmed-corrections.md").read_text(encoding="utf-8")
-        if (memory_dir / "user-confirmed-corrections.md").exists()
-        else build_placeholder("User Confirmed Corrections", "memory/user-confirmed-corrections.md"),
+    render_agent_development(
+        agent_dev_dst,
+        workspace=workspace,
+        protocols_dir=protocols_dir,
+        memory_dir=memory_dir,
+        manifest_src=agent_dev_src / "github-mirror-manifest.md",
+        changelog_text=preserved_changelog,
     )
 
-    skills_dir = agent_dev_dst / "skills"
-    skills_dir.mkdir(parents=True, exist_ok=True)
-    write_text(
-        skills_dir / "README.md",
-        "# Skills\n\nЭта папка автоматически собирает ключевые навыки, которые нужно переносить вместе с агентом.",
+    copied_agent_files_dev = repo_root / "agent_files" / "agent-development"
+    render_agent_development(
+        copied_agent_files_dev,
+        workspace=workspace,
+        protocols_dir=protocols_dir,
+        memory_dir=memory_dir,
+        manifest_src=agent_dev_src / "github-mirror-manifest.md",
+        changelog_text=preserved_changelog,
     )
-    if SKILL_PATH.exists():
-        copy_file(SKILL_PATH, skills_dir / "glavlab-protocol-review" / "SKILL.md")
 
     manifest_src = agent_dev_src / "github-mirror-manifest.md"
     if manifest_src.exists():
@@ -776,7 +798,7 @@ def main() -> int:
     prepare_repo(repo_dir, workspace)
     if git_has_changes(repo_dir):
         append_sync_changelog(repo_dir / "agent-development" / "CHANGELOG.md")
-    git_commit_and_push(repo_dir, args.branch, args.message, do_push=not args.no_push)
+    git_commit_and_push(repo_root=repo_dir, branch=args.branch, message=args.message, do_push=not args.no_push)
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
     write_sync_state(workspace, fingerprint, head)
