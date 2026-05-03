@@ -109,3 +109,11 @@
 ### Экспорт в зеркало
 - после проверки рабочей среды подтверждено, что основные инструкции и ключевая память уже совпадали с зеркалом;
 - обновлен только защитный технический фикс синхронизации, без обратной подмены локальной памяти или инструкций из GitHub.
+
+## 2026-05-03
+
+### Экспорт в зеркало
+- повторно проверены первичные локальные источники: `/workspace/AGENTS.md`, `agent_files/` и память из `/workspace/memory`;
+- подтверждено, что ключевые файлы локальной памяти, корневой `AGENTS.md` и зеркальный `agent_files/agent-development/current-agent-instructions.md` уже совпадали с локальным состоянием;
+- обновлены только реально отличавшиеся переносимые и индексные файлы: `agent-development/current-agent-instructions.md`, `agent-development/agent-summary.md`, `agent-development/files-index/attached-files-index.md`, `agent-development/files-index/templates-index.md` и `agent-development/memory-exports/memory-index.md`;
+- устаревшие локальные служебные копии внутри `agent_files` не использовались как более приоритетный источник, чем живая память и текущие инструкции.
