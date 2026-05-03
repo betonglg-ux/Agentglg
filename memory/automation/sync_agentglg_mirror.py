@@ -638,7 +638,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         copy_file(source, target)
 
     write_text(agent_dev_dst / "current-agent-instructions.md", (workspace / "AGENTS.md").read_text(encoding="utf-8"))
-    write_text(agent_dev_dst / "agent-summary.md", build_agentSummary(protocols_dir))
+    write_text(agent_dev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
     write_text(
         agent_dev_dst / "confirmed-error-patterns.md",
         (memory_dir / "confirmed-error-patterns.md").read_text(encoding="utf-8")
@@ -654,13 +654,13 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     write_text(
         agent_dev_dst / "template-notes.md",
         (memory_dir / "template-notes.md").read_text(encoding="utf-8")
-        if (memory_dir / "template-notes.md").exists()
+        if (memorydir / "template-notes.md").exists()
         else build_placeholder("Template Notes", "memory/template-notes.md"),
     )
     write_text(
         agent_dev_dst / "user-confirmed-corrections.md",
         (memory_dir / "user-confirmed-corrections.md").read_text(encoding="utf-8")
-        if (memorydir / "user-confirmed-corrections.md").exists()
+        if (memory_dir / "user-confirmed-corrections.md").exists()
         else build_placeholder("User Confirmed Corrections", "memory/user-confirmed-corrections.md"),
     )
 
