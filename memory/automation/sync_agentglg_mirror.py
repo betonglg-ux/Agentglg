@@ -86,12 +86,6 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text.rstrip() + "\n", encoding="utf-8")
 
 
-def read_text_if_exists(path: Path) -> str | None:
-    if not path.exists():
-        return None
-    return path.read_text(encoding="utf-8")
-
-
 def normalize_significant_lines(text: str) -> list[str]:
     lines: list[str] = []
     for raw_line in text.splitlines():
@@ -266,12 +260,12 @@ def build_agent_summary(protocols_dir: Path) -> str:
         "- перенос устойчивых знаний и шаблонов в GitHub-зеркало.",
         "",
         "Основные источники истины:",
-        "- инструкции агента из `AGENTS.md`;",
-        "- навык `glavlab-protocol-review`;",
-        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;",
-        "- память агента из папки `memory/`.",
-        "",
-        "Типы шаблонов, найденные в текущей среде:",
+        "- инструкции агента из `AGENTS.md`;
+        - навык `glavlab-protocol-review`;
+        - Excel-шаблоны и связанные файлы из `agent_files/protocols/`;
+        - память агента из папки `memory/`.
+        
+        Типы шаблонов, найденные в текущей среде:",
     ]
     if categories:
         for category in categories:
@@ -283,9 +277,9 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
-            "- память и экспорт подтвержденных правил.",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;
+            - память и экспорт подтвержденных правил.",
         ]
     )
     return "\n".join(lines)
@@ -344,11 +338,11 @@ def build_skills_index_readme() -> str:
             "",
             "При восстановлении похожего агента нужно перенести не только само упоминание навыка, но и связанный с ним контекст:",
             "",
-            "1. сам навык `glavlab-protocol-review`;",
-            "2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
-            "3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;",
-            "4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;",
-            "5. материалы GitHub-зеркала, если навык или его рабочая логика там были дополнены.",
+            "1. сам навык `glavlab-protocol-review`;
+            2. инструкции агента, которые ссылаются на этот навык как на основной регламент;
+            3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;
+            4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;
+            5. материалы GitHub-зеркала, если навык или его рабочая логика там были дополнены.",
             "",
             "## 5. Минимальный комплект для клонирования агента",
             "",
@@ -386,8 +380,6 @@ def refresh_agent_files_service_dir(
         source_path = source_dir / file_name
         target_path = target_dir / file_name
         if source_path.resolve() == target_path.resolve():
-            continue
-        if target_path.exists():
             continue
         copy_file(source_path, target_path)
 
@@ -642,22 +634,14 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
                 child.unlink()
 
     preserved_changelog = None
-    preserved_static_files: dict[str, str] = {}
     changelog_path = agent_dev_dst / "CHANGELOG.md"
     if changelog_path.exists():
         preserved_changelog = changelog_path.read_text(encoding="utf-8")
-    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
-        preserved = read_text_if_exists(agent_dev_dst / file_name)
-        if preserved is not None:
-            preserved_static_files[file_name] = preserved
     if agent_dev_dst.exists():
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
 
     for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
-        if file_name in preserved_static_files:
-            write_text(agent_dev_dst / file_name, preserved_static_files[file_name])
-            continue
         copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
     if preserved_changelog is not None:
         write_text(agent_dev_dst / "CHANGELOG.md", preserved_changelog)
