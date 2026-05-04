@@ -277,8 +277,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -391,10 +391,7 @@ def refresh_agent_files_service_dir(
         if source_path.resolve() != target_path.resolve():
             copy_file(source_path, target_path)
 
-    write_text(
-        target_dir / "current-agent-instructions.md",
-        (workspace / "AGENTS.md").read_text(encoding="utf-8"),
-    )
+    copy_file(workspace / "AGENTS.md", target_dir / "current-agent-instructions.md")
     write_text(target_dir / "agent-summary.md", build_agent_summary(protocols_dir))
 
     files_index_dir = target_dir / "files-index"
@@ -690,7 +687,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         target = raw_memory_dir / source.relative_to(memory_dir)
         copy_file(source, target)
 
-    write_text(agent_dev_dst / "current-agent-instructions.md", (workspace / "AGENTS.md").read_text(encoding="utf-8"))
+    copy_file(workspace / "AGENTS.md", agent_dev_dst / "current-agent-instructions.md")
     write_text(agent_dev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
     write_text(
         agent_dev_dst / "confirmed-error-patterns.md",
