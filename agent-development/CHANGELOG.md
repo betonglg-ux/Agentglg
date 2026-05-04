@@ -85,7 +85,7 @@
 ### Экспорт в зеркало
 - текущая рабочая среда агента снова сверена по первичным локальным источникам: `/workspace/AGENTS.md`, `agent_files/` и память `/workspace/memory`;
 - подтверждено, что основные инструкции и ключевые файлы памяти уже совпадают с зеркалом;
-- устаревшие вложенные копии внутри `agent_files` не принимались за более актуальный источник, если они расходились с первичной локальной памятью;
+- устаревшие вложенные копии внутри локального `agent_files` не принимались за более актуальный источник, если они расходились с первичной локальной памятью;
 - обновлен только реально отличавшийся технический файл `memory/automation/sync_agentglg_mirror.py`.
 
 ### Примечания
@@ -178,3 +178,12 @@
 - вложенные служебные копии внутри локального `agent_files/agent-development/` пересобраны из первичных локальных источников, а не из GitHub-зеркала;
 - обновлены только реально расходившиеся зеркальные файлы `agent_files/agent-development/agent-summary.md`, `agent_files/agent-development/files-index/attached-files-index.md` и `agent_files/agent-development/files-index/templates-index.md`;
 - локальная память сохранена первичным источником истины без обратной подмены из GitHub-зеркала.
+
+## 2026-05-04
+
+### Экспорт в зеркало
+- повторно проверены первичные локальные источники: `/workspace/AGENTS.md`, `agent_files/` и память из `/workspace/memory`;
+- при расхождениях между локальной памятью и зеркалом сначала сверены текущие файлы `memory/*.md`, защитный снимок `memory/snapshots/20260504T130101Z/` и подтвержденные пользователем поправки;
+- подтверждено, что дополнительные записи от `2026-05-04` присутствовали только в зеркале и не были подтверждены текущей локальной памятью как первичным источником истины;
+- в зеркале выровнены только реально расходившиеся файлы `agent-development/confirmed-error-patterns.md`, `agent-development/missed-findings-log.md`, `agent-development/template-notes.md`, `agent-development/user-confirmed-corrections.md`, `memory/confirmed-error-patterns.md`, `memory/missed-findings-log.md`, `memory/template-notes.md`, `memory/user-confirmed-corrections.md` и `memory/user-preferences.md`;
+- основные инструкции, служебные индексы, экспорты памяти и автоматизация синхронизации уже совпадали с текущей рабочей средой и не переписывались.
