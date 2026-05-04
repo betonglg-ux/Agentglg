@@ -13,6 +13,7 @@
 - `agent-development/memory-exports/README.md`
 - `agent-development/memory-exports/confirmed-error-patterns-export.md`
 - `agent-development/memory-exports/missed-findings-export.md`
+- `agent-development/memory-exports/slack-user-corrections-export.md`
 - `agent-development/memory-exports/template-notes-export.md`
 - `agent-development/memory-exports/user-corrections-export.md`
 - `agent-development/recovery-plan.md`
