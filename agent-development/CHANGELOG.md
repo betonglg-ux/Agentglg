@@ -187,3 +187,13 @@
 - подтверждено, что дополнительные записи от `2026-05-04` присутствовали только в зеркале и не были подтверждены текущей локальной памятью как первичным источником истины;
 - в зеркале выровнены только реально расходившиеся файлы `agent-development/confirmed-error-patterns.md`, `agent-development/missed-findings-log.md`, `agent-development/template-notes.md`, `agent-development/user-confirmed-corrections.md`, `memory/confirmed-error-patterns.md`, `memory/missed-findings-log.md`, `memory/template-notes.md`, `memory/user-confirmed-corrections.md` и `memory/user-preferences.md`;
 - основные инструкции, служебные индексы, экспорты памяти и автоматизация синхронизации уже совпадали с текущей рабочей средой и не переписывались.
+
+## 2026-05-04
+
+### Экспорт в зеркало
+- повторно проверены первичные локальные источники: `/workspace/AGENTS.md`, `agent_files/` и память из `/workspace/memory`;
+- прямой `git clone` из контейнера снова был заблокирован сетью, поэтому точечная синхронизация выполнена через GitHub-коннектор;
+- при расхождениях между локальной памятью и экспортными raw-memory-копиями зеркала сначала сверены текущие файлы `memory/*.md`, защитный снимок `memory/snapshots/20260504T130101Z/` и подтвержденные пользователем поправки;
+- подтверждено, что дополнительные записи от `2026-05-04` присутствовали только в `agent-development/memory-exports/raw-memory/` и не подтверждены текущей локальной памятью как первичным источником истины;
+- выровнены только реально расходившиеся экспортные копии: `agent-development/memory-exports/raw-memory/confirmed-error-patterns.md`, `agent-development/memory-exports/raw-memory/missed-findings-log.md`, `agent-development/memory-exports/raw-memory/template-notes.md` и `agent-development/memory-exports/raw-memory/user-confirmed-corrections.md`;
+- основные инструкции, корневые файлы памяти, индексы `agent_files` и автоматизация синхронизации уже совпадали с текущей рабочей средой и не переписывались.
