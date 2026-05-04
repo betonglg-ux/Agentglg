@@ -22,7 +22,7 @@
 
 ```bash
 export AGENTGLG_GITHUB_TOKEN=ваш_токен
-bash /workspace/automation/setup_github_auth.sh
+bash /workspace/memory/automation/setup_github_auth.sh
 ```
 
 После этого токен будет сохранен в `/workspace/memory/agentglg-github-token.txt`, и будущие экспорты смогут работать без ручной подстановки переменной окружения.
