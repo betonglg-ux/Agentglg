@@ -197,3 +197,12 @@
 - подтверждено, что дополнительные записи от `2026-05-04` присутствовали только в `agent-development/memory-exports/raw-memory/` и не подтверждены текущей локальной памятью как первичным источником истины;
 - выровнены только реально расходившиеся экспортные копии: `agent-development/memory-exports/raw-memory/confirmed-error-patterns.md`, `agent-development/memory-exports/raw-memory/missed-findings-log.md`, `agent-development/memory-exports/raw-memory/template-notes.md` и `agent-development/memory-exports/raw-memory/user-confirmed-corrections.md`;
 - основные инструкции, корневые файлы памяти, индексы `agent_files` и автоматизация синхронизации уже совпадали с текущей рабочей средой и не переписывались.
+
+## 2026-05-04
+
+### Экспорт в зеркало
+- повторно проверены первичные локальные источники: `/workspace/AGENTS.md`, `agent_files/` и память из `/workspace/memory`;
+- локальная память, защитный снимок `memory/snapshots/20260504T130101Z/` и подтвержденные пользовательские правки не подтвердили отдельный первичный файл `slack-user-corrections.md`;
+- локальные производные файлы внутри `agent_files/agent-development/` пересобраны от первичных источников, но зеркалу это не потребовало массовой перезаписи;
+- из зеркала удален только устаревший `agent-development/slack-user-corrections.md`, не подтвержденный текущей локальной памятью как первичный источник;
+- корневые инструкции, ключевые файлы памяти, индексы и экспорты уже совпадали с текущей рабочей средой и не переписывались.
