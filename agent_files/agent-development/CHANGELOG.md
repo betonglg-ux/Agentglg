@@ -159,3 +159,12 @@
 - из зеркала удалены только устаревшие Slack-файлы-заглушки и связанные с ними экспортные следы;
 - обновлены только реально расходившиеся индексы `agent-development/files-index/attached-files-index.md`, `agent_files/agent-development/files-index/attached-files-index.md` и `agent-development/memory-exports/memory-index.md`;
 - локальная память сохранена первичным источником истины без обратной подмены из GitHub-зеркала.
+
+## 2026-05-04
+
+### Экспорт в зеркало
+- повторно проверены первичные локальные источники: `/workspace/AGENTS.md`, `agent_files/` и память из `/workspace/memory`;
+- при расхождениях между зеркалом и памятью сначала сверены локальная память, подтвержденные пользовательские поправки и доступные защитные снимки; оснований считать GitHub более актуальным не найдено;
+- перед точечной синхронизацией создан новый локальный защитный снимок памяти: `memory/snapshots/20260504T130101Z/`;
+- обновлены только реально отставшие зеркальные копии `agent-development/confirmed-error-patterns.md`, `agent-development/missed-findings-log.md`, `agent-development/user-confirmed-corrections.md`, `memory/missed-findings-log.md` и связанные экспорты журнала пропусков;
+- локальная память сохранена первичным источником истины без обратной подмены из GitHub-зеркала.
