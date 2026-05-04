@@ -829,7 +829,7 @@ def main() -> int:
     prepare_repo(repo_dir, workspace)
     if git_has_changes(repo_dir):
         append_sync_changelog(repo_dir / "agent-development" / "CHANGELOG.md")
-    git_commit_and_push(repo_dir, args.branch, message=args.message, do_push=not args.no_push)
+    git_commit_and_push(repo_dir, args.branch, args.message, do_push=not args.no_push)
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
     write_sync_state(workspace, fingerprint, head)
