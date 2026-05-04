@@ -40,6 +40,7 @@ WORKSPACE_EXCLUDE_FILE_NAMES = {
 MEMORY_FILES = [
     "confirmed-error-patterns.md",
     "missed-findings-log.md",
+    "slack-user-corrections.md",
     "template-notes.md",
     "user-confirmed-corrections.md",
 ]
@@ -260,10 +261,10 @@ def build_agent_summary(protocols_dir: Path) -> str:
         "- перенос устойчивых знаний и шаблонов в GitHub-зеркало.",
         "",
         "Основные источники истины:",
-        "- инструкции агента из `AGENTS.md`;",
-        "- навык `glavlab-protocol-review`;",
-        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;",
-        "- память агента из папки `memory/`.",
+        "- инструкции агента из `AGENTS.md`;
+        "- навык `glavlab-protocol-review`;
+        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;
+        "- память агента из папки `memory/`.
         "",
         "Типы шаблонов, найденные в текущей среде:",
     ]
@@ -408,6 +409,7 @@ def refresh_agent_files_service_dir(
     export_map = {
         "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
         "missed-findings-log.md": "missed-findings-export.md",
+        "slack-user-corrections.md": "slack-user-corrections-export.md",
         "template-notes.md": "template-notes-export.md",
         "user-confirmed-corrections.md": "user-corrections-export.md",
     }
@@ -673,6 +675,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     export_map = {
         "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
         "missed-findings-log.md": "missed-findings-export.md",
+        "slack-user-corrections.md": "slack-user-corrections-export.md",
         "template-notes.md": "template-notes-export.md",
         "user-confirmed-corrections.md": "user-corrections-export.md",
     }
@@ -691,7 +694,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         copy_file(source, target)
 
     write_text(agent_dev_dst / "current-agent-instructions.md", (workspace / "AGENTS.md").read_text(encoding="utf-8"))
-    write_text(agent_dev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
+    write_text(agentDev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
     write_text(
         agent_dev_dst / "confirmed-error-patterns.md",
         (memory_dir / "confirmed-error-patterns.md").read_text(encoding="utf-8")
