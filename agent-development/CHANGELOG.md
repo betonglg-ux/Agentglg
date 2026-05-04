@@ -168,3 +168,13 @@
 - перед точечной синхронизацией создан новый локальный защитный снимок памяти: `memory/snapshots/20260504T130101Z/`;
 - обновлены только реально отставшие зеркальные копии `agent-development/confirmed-error-patterns.md`, `agent-development/missed-findings-log.md`, `agent-development/user-confirmed-corrections.md`, `memory/missed-findings-log.md` и связанные экспорты журнала пропусков;
 - локальная память сохранена первичным источником истины без обратной подмены из GitHub-зеркала.
+
+## 2026-05-04
+
+### Экспорт в зеркало
+- повторно проверена текущая рабочая среда агента: корневой `AGENTS.md`, локальная память `/workspace/memory` и служебные файлы внутри `agent_files/`;
+- прямой `git clone` из контейнера снова был заблокирован сетью, поэтому точечная синхронизация выполнена через GitHub-коннектор;
+- перед записью повторно сверены локальная память, защитные снимки `memory/snapshots/20260504T130101Z/` и `memory/snapshots/20260504T132704Z/`, а также подтвержденные пользователем правила; оснований считать зеркало более актуальным не найдено;
+- вложенные служебные копии внутри локального `agent_files/agent-development/` пересобраны из первичных локальных источников, а не из GitHub-зеркала;
+- обновлены только реально расходившиеся зеркальные файлы `agent_files/agent-development/agent-summary.md`, `agent_files/agent-development/files-index/attached-files-index.md` и `agent_files/agent-development/files-index/templates-index.md`;
+- локальная память сохранена первичным источником истины без обратной подмены из GitHub-зеркала.
