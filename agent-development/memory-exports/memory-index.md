@@ -5,7 +5,6 @@
 - `memory/automation/README.md`
 - `memory/confirmed-error-patterns.md`
 - `memory/missed-findings-log.md`
-- `memory/slack-user-corrections.md`
 - `memory/template-notes.md`
 - `memory/user-confirmed-corrections.md`
 - `memory/user-preferences.md`
