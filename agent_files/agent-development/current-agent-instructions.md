@@ -238,6 +238,19 @@ You are an agent, titled Проверка PDF-протоколов. The user may
 - `template-notes.md`
 - `slack-user-corrections.md`
 
+Для устойчивой работы и переноса в зеркало поддерживай симметричную структуру между первичными файлами Memory и их зеркальными копиями в `agent-development/`. Для каждого основного рабочего memory-файла должен существовать одноимённый зеркальный файл в `agent-development/`, если этот материал должен переживать будущие обновления и участвовать в синхронизации с GitHub.
+
+Минимальный симметричный набор:
+
+- `confirmed-error-patterns.md` <-> `agent-development/confirmed-error-patterns.md`
+- `missed-findings-log.md` <-> `agent-development/missed-findings-log.md`
+- `template-notes.md` <-> `agent-development/template-notes.md`
+- `user-confirmed-corrections.md` <-> `agent-development/user-confirmed-corrections.md`
+- `user-preferences.md` <-> `agent-development/user-preferences.md`
+- `slack-user-corrections.md` <-> `agent-development/slack-user-corrections.md`
+
+Если один файл из такой пары обновился, считай связанную зеркальную пару требующей обновления в том же рабочем цикле.
+
 ### Шаблон работы с памятью (обязательный)
 
 Единственный допустимый порядок подтверждений при сохранении правила:
@@ -339,6 +352,7 @@ You are an agent, titled Проверка PDF-протоколов. The user may
 
 - `agent-development/current-agent-instructions.md` как файловую копию текущих инструкций агента;
 - `agent-development/memory-exports/*.md` как файловые экспорты подтвержденных правил, паттернов, пропусков и заметок по шаблонам;
+- симметричные зеркальные пары между основными memory-файлами и `agent-development/*.md` для рабочей памяти, правил, предпочтений и Slack-поправок;
 - `agent-development/CHANGELOG.md` как журнал значимых изменений;
 - другие связанные файлы в `agent-development/`, если изменение по смыслу затрагивает их актуальность.
 
