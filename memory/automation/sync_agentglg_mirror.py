@@ -37,12 +37,11 @@ WORKSPACE_EXCLUDE_FILE_NAMES = {
     "agentglg-github-token.txt",
     "agentglg-sync-state.txt",
 }
-REQUIRED_MEMORY_FILES = [
+MEMORY_FILES = [
     "confirmed-error-patterns.md",
     "missed-findings-log.md",
     "template-notes.md",
     "user-confirmed-corrections.md",
-    "user-preferences.md",
 ]
 
 
@@ -99,7 +98,7 @@ def normalize_significant_lines(text: str) -> list[str]:
 
 def snapshot_memory_files(workspace: Path) -> Path | None:
     memory_dir = workspace / "memory"
-    files_to_copy = list_memory_markdown_files(memory_dir)
+    files_to_copy = [memory_dir / name for name in MEMORY_FILES if (memory_dir / name).exists()]
     if not files_to_copy:
         return None
 
@@ -126,14 +125,10 @@ def detect_memory_regressions(repo_root: Path, workspace: Path) -> list[str]:
     memory_dir = workspace / "memory"
     regressions: list[str] = []
 
-    remote_memory_files = list_memory_markdown_files(repo_root / "memory")
-    for remote_path in remote_memory_files:
-        file_name = remote_path.relative_to(repo_root / "memory").as_posix()
+    for file_name in MEMORY_FILES:
         local_path = memory_dir / file_name
-        if not local_path.exists():
-            regressions.append(
-                f"{file_name}: файл есть в зеркале, но отсутствует в локальной памяти"
-            )
+        remote_path = repo_root / "agent-development" / file_name
+        if not local_path.exists() or not remote_path.exists():
             continue
 
         local_lines = set(normalize_significant_lines(local_path.read_text(encoding="utf-8")))
@@ -407,7 +402,13 @@ def refresh_agent_files_service_dir(
     memory_exports_dir = target_dir / "memory-exports"
     memory_exports_dir.mkdir(parents=True, exist_ok=True)
     write_text(memory_exports_dir / "README.md", build_memory_export_readme())
-    for memory_name, export_name in get_memory_export_map().items():
+    export_map = {
+        "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
+        "missed-findings-log.md": "missed-findings-export.md",
+        "template-notes.md": "template-notes-export.md",
+        "user-confirmed-corrections.md": "user-corrections-export.md",
+    }
+    for memory_name, export_name in export_map.items():
         source = memory_dir / memory_name
         target = memory_exports_dir / export_name
         if source.exists():
@@ -415,28 +416,9 @@ def refresh_agent_files_service_dir(
         else:
             write_text(target, build_placeholder(export_name.replace("-", " ").replace(".md", "").title(), memory_name))
 
-    sync_memory_mirrors(target_dir, memory_dir)
-
     skills_dir = target_dir / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
     write_text(skills_dir / "README.md", build_skills_index_readme())
-
-
-def get_memory_export_map() -> dict[str, str]:
-    return {
-        "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
-        "missed-findings-log.md": "missed-findings-export.md",
-        "template-notes.md": "template-notes-export.md",
-        "user-confirmed-corrections.md": "user-corrections-export.md",
-        "user-preferences.md": "user-preferences-export.md",
-        "slack-user-corrections.md": "slack-user-corrections-export.md",
-    }
-
-
-def sync_memory_mirrors(target_dir: Path, memory_dir: Path) -> None:
-    for memory_path in list_memory_markdown_files(memory_dir):
-        rel = memory_path.relative_to(memory_dir)
-        copy_file(memory_path, target_dir / rel)
 
 
 def build_memory_index(memory_dir: Path) -> str:
@@ -685,7 +667,13 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     memory_exports_dir.mkdir(parents=True, exist_ok=True)
     write_text(memory_exports_dir / "README.md", build_memory_export_readme())
     write_text(memory_exports_dir / "memory-index.md", build_memory_index(memory_dir))
-    for memory_name, export_name in get_memory_export_map().items():
+    export_map = {
+        "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
+        "missed-findings-log.md": "missed-findings-export.md",
+        "template-notes.md": "template-notes-export.md",
+        "user-confirmed-corrections.md": "user-corrections-export.md",
+    }
+    for memory_name, export_name in export_map.items():
         source = memory_dir / memory_name
         target = memory_exports_dir / export_name
         if source.exists():
@@ -701,7 +689,30 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
 
     copy_file(workspace / "AGENTS.md", agent_dev_dst / "current-agent-instructions.md")
     write_text(agent_dev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
-    sync_memory_mirrors(agent_dev_dst, memory_dir)
+    write_text(
+        agent_dev_dst / "confirmed-error-patterns.md",
+        (memory_dir / "confirmed-error-patterns.md").read_text(encoding="utf-8")
+        if (memory_dir / "confirmed-error-patterns.md").exists()
+        else build_placeholder("Confirmed Error Patterns", "memory/confirmed-error-patterns.md"),
+    )
+    write_text(
+        agent_dev_dst / "missed-findings-log.md",
+        (memory_dir / "missed-findings-log.md").read_text(encoding="utf-8")
+        if (memory_dir / "missed-findings-log.md").exists()
+        else build_placeholder("Missed Findings Log", "memory/missed-findings-log.md"),
+    )
+    write_text(
+        agent_dev_dst / "template-notes.md",
+        (memory_dir / "template-notes.md").read_text(encoding="utf-8")
+        if (memory_dir / "template-notes.md").exists()
+        else build_placeholder("Template Notes", "memory/template-notes.md"),
+    )
+    write_text(
+        agent_dev_dst / "user-confirmed-corrections.md",
+        (memory_dir / "user-confirmed-corrections.md").read_text(encoding="utf-8")
+        if (memory_dir / "user-confirmed-corrections.md").exists()
+        else build_placeholder("User Confirmed Corrections", "memory/user-confirmed-corrections.md"),
+    )
 
     skills_dir = agent_dev_dst / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
@@ -792,7 +803,7 @@ def main() -> int:
         )
         return 1
 
-    missing_memory_files = [name for name in REQUIRED_MEMORY_FILES if not (workspace / "memory" / name).exists()]
+    missing_memory_files = [name for name in MEMORY_FILES if not (workspace / "memory" / name).exists()]
     if missing_memory_files:
         joined = ", ".join(missing_memory_files)
         raise RuntimeError(
@@ -817,9 +828,7 @@ def main() -> int:
         )
     prepare_repo(repo_dir, workspace)
     if git_has_changes(repo_dir):
-        changelog_path = repo_dir / "agent-development" / "CHANGELOG.md"
-        append_sync_changelog(changelog_path)
-        copy_file(changelog_path, repo_dir / "agent_files" / "agent-development" / "CHANGELOG.md")
+        append_sync_changelog(repo_dir / "agent-development" / "CHANGELOG.md")
     git_commit_and_push(repo_dir, args.branch, args.message, do_push=not args.no_push)
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
