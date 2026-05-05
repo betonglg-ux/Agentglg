@@ -42,6 +42,9 @@ MEMORY_FILES = [
     "missed-findings-log.md",
     "template-notes.md",
     "user-confirmed-corrections.md",
+    "user-preferences.md",
+    "slack-user-corrections.md",
+    "memory-save-log.md",
 ]
 
 
@@ -277,8 +280,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -407,6 +410,9 @@ def refresh_agent_files_service_dir(
         "missed-findings-log.md": "missed-findings-export.md",
         "template-notes.md": "template-notes-export.md",
         "user-confirmed-corrections.md": "user-corrections-export.md",
+        "user-preferences.md": "user-preferences-export.md",
+        "slack-user-corrections.md": "slack-user-corrections-export.md",
+        "memory-save-log.md": "memory-save-log-export.md",
     }
     for memory_name, export_name in export_map.items():
         source = memory_dir / memory_name
@@ -672,6 +678,9 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         "missed-findings-log.md": "missed-findings-export.md",
         "template-notes.md": "template-notes-export.md",
         "user-confirmed-corrections.md": "user-corrections-export.md",
+        "user-preferences.md": "user-preferences-export.md",
+        "slack-user-corrections.md": "slack-user-corrections-export.md",
+        "memory-save-log.md": "memory-save-log-export.md",
     }
     for memory_name, export_name in export_map.items():
         source = memory_dir / memory_name
@@ -712,6 +721,24 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         (memory_dir / "user-confirmed-corrections.md").read_text(encoding="utf-8")
         if (memory_dir / "user-confirmed-corrections.md").exists()
         else build_placeholder("User Confirmed Corrections", "memory/user-confirmed-corrections.md"),
+    )
+    write_text(
+        agent_dev_dst / "user-preferences.md",
+        (memory_dir / "user-preferences.md").read_text(encoding="utf-8")
+        if (memory_dir / "user-preferences.md").exists()
+        else build_placeholder("User Preferences", "memory/user-preferences.md"),
+    )
+    write_text(
+        agent_dev_dst / "slack-user-corrections.md",
+        (memory_dir / "slack-user-corrections.md").read_text(encoding="utf-8")
+        if (memory_dir / "slack-user-corrections.md").exists()
+        else build_placeholder("Slack User Corrections", "memory/slack-user-corrections.md"),
+    )
+    write_text(
+        agent_dev_dst / "memory-save-log.md",
+        (memory_dir / "memory-save-log.md").read_text(encoding="utf-8")
+        if (memory_dir / "memory-save-log.md").exists()
+        else build_placeholder("Memory Save Log", "memory/memory-save-log.md"),
     )
 
     skills_dir = agent_dev_dst / "skills"
