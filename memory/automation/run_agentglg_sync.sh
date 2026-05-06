@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PRIMARY_SCRIPT="/workspace/automation/sync_agentglg_mirror.py"
+PRIMARY_SCRIPT="/workspace/memory/memory/automation/sync_agentglg_mirror.py"
 FALLBACK_SCRIPT="/workspace/agent_files/agent-development/automation/sync_agentglg_mirror.py"
-MEMORY_SCRIPT="/workspace/memory/automation/sync_agentglg_mirror.py"
+MEMORY_SCRIPT="/workspace/memory/memory/automation/sync_agentglg_mirror.py"
 
 if [[ ! -d /workspace ]]; then
   echo "Экспорт в зеркало не запущен: рабочая папка /workspace недоступна."
@@ -11,19 +11,19 @@ if [[ ! -d /workspace ]]; then
 fi
 
 if [[ -f "${PRIMARY_SCRIPT}" ]]; then
-  exec python3 "${PRIMARY_SCRIPT}" --only-if-changed
+  exec python3 "${PRIMARY_SCRIPT}" --workspace /workspace/memory --branch main --only-if-changed
 fi
 
 if [[ -f "${FALLBACK_SCRIPT}" ]]; then
-  exec python3 "${FALLBACK_SCRIPT}" --only-if-changed
+  exec python3 "${FALLBACK_SCRIPT}" --workspace /workspace/memory --branch main --only-if-changed
 fi
 
 if [[ -f "${MEMORY_SCRIPT}" ]]; then
-  exec python3 "${MEMORY_SCRIPT}" --only-if-changed
+  exec python3 "${MEMORY_SCRIPT}" --workspace /workspace/memory --branch main --only-if-changed
 fi
 
-if [[ ! -d /workspace/automation ]]; then
-  echo "Экспорт в зеркало не запущен: папка /workspace/automation недоступна, а резервные скрипты в /workspace/agent_files/agent-development/automation и /workspace/memory/automation тоже не найдены."
+if [[ ! -d /workspace/memory/memory/automation ]]; then
+  echo "Экспорт в зеркало не запущен: папка /workspace/memory/memory/automation недоступна, а резервные скрипты в /workspace/agent_files/agent-development/automation и /workspace/memory/memory/automation тоже не найдены."
   exit 1
 fi
 
