@@ -2,7 +2,9 @@
 
 Эта папка подготавливает автоматический экспорт текущей рабочей среды в репозиторий `betonglg-ux/Agentglg` без ручной правки индексов и служебных файлов.
 
-Главный принцип: локальная память агента в `/workspace/memory` является источником истины, а GitHub-зеркало служит только внешним дубликатом и архивом. Экспорт не должен обновлять локальную память данными из зеркала.
+Главный принцип: локальная память агента в `/workspace/memory/memory` является источником истины, а GitHub-зеркало служит только внешним дубликатом и архивом. Экспорт не должен обновлять локальную память данными из зеркала.
+
+Текущая версия автоматизации по умолчанию работает с веткой `main` репозитория `betonglg-ux/Agentglg` и при подготовке зеркала не должна наследовать случайный локальный `origin` от других служебных репозиториев.
 
 ## Что делает экспорт в зеркало
 
@@ -22,21 +24,21 @@
 
 ```bash
 export AGENTGLG_GITHUB_TOKEN=ваш_токен
-bash /workspace/automation/setup_github_auth.sh
+bash /workspace/memory/memory/automation/setup_github_auth.sh
 ```
 
-После этого токен будет сохранен в `/workspace/memory/agentglg-github-token.txt`, и будущие экспорты смогут работать без ручной подстановки переменной окружения.
+После этого токен будет сохранен в `/workspace/memory/memory/agentglg-github-token.txt`, и будущие экспорты смогут работать без ручной подстановки переменной окружения.
 
 ## Обычный запуск
 
 ```bash
-bash /workspace/memory/automation/export_agentglg_mirror.sh
+bash /workspace/memory/memory/automation/export_agentglg_mirror.sh
 ```
 
 ## Запуск только при новых изменениях
 
 ```bash
-bash /workspace/memory/automation/export_agentglg_mirror.sh
+bash /workspace/memory/memory/automation/export_agentglg_mirror.sh
 ```
 
 В этом режиме скрипт сравнивает текущий отпечаток рабочей среды с последним успешным экспортом и ничего не отправляет, если новых изменений нет.
@@ -44,7 +46,7 @@ bash /workspace/memory/automation/export_agentglg_mirror.sh
 ## Пробный запуск без push
 
 ```bash
-bash /workspace/memory/automation/export_agentglg_mirror.sh --no-push
+bash /workspace/memory/memory/automation/export_agentglg_mirror.sh --no-push
 ```
 
 ## Защита от потери наработок
@@ -56,7 +58,7 @@ bash /workspace/memory/automation/export_agentglg_mirror.sh --no-push
 - принудительно обойти эту защиту можно только явным флагом:
 
 ```bash
-bash /workspace/memory/automation/export_agentglg_mirror.sh --allow-memory-overwrite
+bash /workspace/memory/memory/automation/export_agentglg_mirror.sh --allow-memory-overwrite
 ```
 
 Использовать этот флаг стоит только тогда, когда вы уверены, что сознательно заменяете более старую версию памяти.
