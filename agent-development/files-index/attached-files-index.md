@@ -4,7 +4,17 @@
 
 ## 1. Служебные файлы развития агента
 - `agent-development/CHANGELOG.md`
+- `agent-development/agent-summary.md`
+- `agent-development/current-agent-instructions.md`
+- `agent-development/files-index/attached-files-index.md`
 - `agent-development/files-index/templates-index.md`
+- `agent-development/memory-exports/README.md`
+- `agent-development/memory-exports/confirmed-error-patterns-export.md`
+- `agent-development/memory-exports/memory-save-log-export.md`
+- `agent-development/memory-exports/missed-findings-export.md`
+- `agent-development/memory-exports/template-notes-export.md`
+- `agent-development/memory-exports/user-corrections-export.md`
+- `agent-development/memory-exports/user-preferences-export.md`
 - `agent-development/recovery-plan.md`
 - `agent-development/skills/README.md`
 
