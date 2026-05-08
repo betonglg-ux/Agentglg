@@ -5,34 +5,17 @@
 ## 1. Служебные файлы развития агента
 - `agent-development/CHANGELOG.md`
 - `agent-development/agent-summary.md`
-- `agent-development/confirmed-error-patterns.md`
 - `agent-development/current-agent-instructions.md`
-- `agent-development/files-index/README.md`
+- `agent-development/files-index/templates-index.md`
 - `agent-development/memory-exports/README.md`
 - `agent-development/memory-exports/confirmed-error-patterns-export.md`
-- `agent-development/memory-exports/memory-index.md`
 - `agent-development/memory-exports/memory-save-log-export.md`
 - `agent-development/memory-exports/missed-findings-export.md`
-- `agent-development/memory-exports/raw-memory/automation/README.md`
-- `agent-development/memory-exports/raw-memory/confirmed-error-patterns.md`
-- `agent-development/memory-exports/raw-memory/memory-save-log.md`
-- `agent-development/memory-exports/raw-memory/missed-findings-log.md`
-- `agent-development/memory-exports/raw-memory/slack-user-corrections.md`
-- `agent-development/memory-exports/raw-memory/template-notes.md`
-- `agent-development/memory-exports/raw-memory/user-confirmed-corrections.md`
-- `agent-development/memory-exports/raw-memory/user-preferences.md`
 - `agent-development/memory-exports/template-notes-export.md`
 - `agent-development/memory-exports/user-corrections-export.md`
 - `agent-development/memory-exports/user-preferences-export.md`
-- `agent-development/memory-save-log.md`
-- `agent-development/missed-findings-log.md`
 - `agent-development/recovery-plan.md`
 - `agent-development/skills/README.md`
-- `agent-development/skills/glavlab-protocol-review/SKILL.md`
-- `agent-development/slack-user-corrections.md`
-- `agent-development/template-notes.md`
-- `agent-development/user-confirmed-corrections.md`
-- `agent-development/user-preferences.md`
 
 ## 2. Папка `protocols/`
 ### `protocols/Адгезия`
