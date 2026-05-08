@@ -686,13 +686,13 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     )
 
     copy_tree(protocols_dir, agent_dev_dst / "protocols")
-    write_text(agentDevDst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
+    write_text(agent_dev_dst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
 
     memory_exports_dir = agent_dev_dst / "memory-exports"
     memory_exports_dir.mkdir(parents=True, exist_ok=True)
     source_memory_exports_readme = agent_dev_src / "memory-exports" / "README.md"
-    if source_memoryExports_readme.exists():
-        copy_file(source_memoryExports_readme, memory_exports_dir / "README.md")
+    if source_memory_exports_readme.exists():
+        copy_file(source_memory_exports_readme, memory_exports_dir / "README.md")
     else:
         write_text(memory_exports_dir / "README.md", build_memory_export_readme())
     write_text(memory_exports_dir / "memory-index.md", build_memory_index(memory_dir))
