@@ -37,11 +37,13 @@ WORKSPACE_EXCLUDE_FILE_NAMES = {
     "agentglg-github-token.txt",
     "agentglg-sync-state.txt",
 }
-MEMORY_FILES = [
+REQUIRED_MEMORY_FILES = [
     "confirmed-error-patterns.md",
     "missed-findings-log.md",
     "template-notes.md",
     "user-confirmed-corrections.md",
+]
+PROTECTED_MEMORY_FILES = REQUIRED_MEMORY_FILES + [
     "user-preferences.md",
     "slack-user-corrections.md",
     "memory-save-log.md",
@@ -101,7 +103,7 @@ def normalize_significant_lines(text: str) -> list[str]:
 
 def snapshot_memory_files(workspace: Path) -> Path | None:
     memory_dir = workspace / "memory"
-    files_to_copy = [memory_dir / name for name in MEMORY_FILES if (memory_dir / name).exists()]
+    files_to_copy = [memory_dir / name for name in PROTECTED_MEMORY_FILES if (memory_dir / name).exists()]
     if not files_to_copy:
         return None
 
@@ -128,9 +130,15 @@ def detect_memory_regressions(repo_root: Path, workspace: Path) -> list[str]:
     memory_dir = workspace / "memory"
     regressions: list[str] = []
 
-    for file_name in MEMORY_FILES:
+    for file_name in PROTECTED_MEMORY_FILES:
         local_path = memory_dir / file_name
         remote_path = repo_root / "agent-development" / file_name
+        if not local_path.exists() and remote_path.exists():
+            regressions.append(
+                f"{file_name}: в зеркале есть файл, которого нет в локальной памяти. "
+                "Нужно сначала проверить локальную память и подтвержденные правки, а не удалять зеркальную запись автоматически."
+            )
+            continue
         if not local_path.exists() or not remote_path.exists():
             continue
 
@@ -192,13 +200,19 @@ def list_memory_markdown_files(memory_dir: Path) -> list[Path]:
     return files
 
 
-def format_attached_files_index(agent_files_dir: Path) -> str:
+def format_attached_files_index(agent_files_dir: Path, service_dir: Path | None = None) -> str:
     protocols_dir = agent_files_dir / "protocols"
-    service_files = sorted(
-        path.relative_to(agent_files_dir / "agent-development")
-        for path in (agent_files_dir / "agent-development").rglob("*")
-        if path.is_file()
-    ) if (agent_files_dir / "agent-development").exists() else []
+    service_root = service_dir if service_dir and service_dir.exists() else agent_files_dir / "agent-development"
+    service_files: list[Path] = []
+    if service_root.exists():
+        for path in service_root.rglob("*"):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(service_root)
+            if rel.parts and rel.parts[0] == "protocols":
+                continue
+            service_files.append(rel)
+        service_files.sort()
     xl_files = rel_files(agent_files_dir / "xl") if (agent_files_dir / "xl").exists() else []
 
     lines = [
@@ -280,8 +294,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;
-            - папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;",
+            "- папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -395,23 +409,25 @@ def refresh_agent_files_service_dir(
             copy_file(source_path, target_path)
 
     copy_file(workspace / "AGENTS.md", target_dir / "current-agent-instructions.md")
-    write_text(target_dir / "agent-summary.md", build_agent_summary(protocols_dir))
-
-    files_index_dir = target_dir / "files-index"
-    files_index_dir.mkdir(parents=True, exist_ok=True)
-    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(workspace / "agent_files"))
-    write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
+    source_agent_summary = source_dir / "agent-summary.md"
+    if source_agent_summary.exists():
+        copy_file(source_agent_summary, target_dir / "agent-summary.md")
+    else:
+        write_text(target_dir / "agent-summary.md", build_agent_summary(protocols_dir))
 
     memory_exports_dir = target_dir / "memory-exports"
     memory_exports_dir.mkdir(parents=True, exist_ok=True)
-    write_text(memory_exports_dir / "README.md", build_memory_export_readme())
+    source_memory_exports_readme = source_dir / "memory-exports" / "README.md"
+    if source_memory_exports_readme.exists():
+        copy_file(source_memory_exports_readme, memory_exports_dir / "README.md")
+    else:
+        write_text(memory_exports_dir / "README.md", build_memory_export_readme())
     export_map = {
         "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
         "missed-findings-log.md": "missed-findings-export.md",
         "template-notes.md": "template-notes-export.md",
         "user-confirmed-corrections.md": "user-corrections-export.md",
         "user-preferences.md": "user-preferences-export.md",
-        "slack-user-corrections.md": "slack-user-corrections-export.md",
         "memory-save-log.md": "memory-save-log-export.md",
     }
     for memory_name, export_name in export_map.items():
@@ -424,7 +440,16 @@ def refresh_agent_files_service_dir(
 
     skills_dir = target_dir / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
-    write_text(skills_dir / "README.md", build_skills_index_readme())
+    source_skills_readme = source_dir / "skills" / "README.md"
+    if source_skills_readme.exists():
+        copy_file(source_skills_readme, skills_dir / "README.md")
+    else:
+        write_text(skills_dir / "README.md", build_skills_index_readme())
+
+    files_index_dir = target_dir / "files-index"
+    files_index_dir.mkdir(parents=True, exist_ok=True)
+    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(workspace / "agent_files", target_dir))
+    write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
 
 
 def build_memory_index(memory_dir: Path) -> str:
@@ -663,15 +688,13 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     copy_tree(protocols_dir, agent_dev_dst / "protocols")
     write_text(agent_dev_dst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
 
-    files_index_dir = agent_dev_dst / "files-index"
-    files_index_dir.mkdir(parents=True, exist_ok=True)
-    write_text(files_index_dir / "README.md", "# Files Index\n\nЭтот раздел автоматически собирается при экспорте в зеркало.")
-    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(agent_files))
-    write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
-
     memory_exports_dir = agent_dev_dst / "memory-exports"
     memory_exports_dir.mkdir(parents=True, exist_ok=True)
-    write_text(memory_exports_dir / "README.md", build_memory_export_readme())
+    source_memory_exports_readme = agent_dev_src / "memory-exports" / "README.md"
+    if source_memory_exports_readme.exists():
+        copy_file(source_memory_exports_readme, memory_exports_dir / "README.md")
+    else:
+        write_text(memory_exports_dir / "README.md", build_memory_export_readme())
     write_text(memory_exports_dir / "memory-index.md", build_memory_index(memory_dir))
     export_map = {
         "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
@@ -679,7 +702,6 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         "template-notes.md": "template-notes-export.md",
         "user-confirmed-corrections.md": "user-corrections-export.md",
         "user-preferences.md": "user-preferences-export.md",
-        "slack-user-corrections.md": "slack-user-corrections-export.md",
         "memory-save-log.md": "memory-save-log-export.md",
     }
     for memory_name, export_name in export_map.items():
@@ -697,7 +719,11 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         copy_file(source, target)
 
     copy_file(workspace / "AGENTS.md", agent_dev_dst / "current-agent-instructions.md")
-    write_text(agent_dev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
+    source_agent_summary = agent_dev_src / "agent-summary.md"
+    if source_agent_summary.exists():
+        copy_file(source_agent_summary, agent_dev_dst / "agent-summary.md")
+    else:
+        write_text(agent_dev_dst / "agent-summary.md", build_agent_summary(protocols_dir))
     write_text(
         agent_dev_dst / "confirmed-error-patterns.md",
         (memory_dir / "confirmed-error-patterns.md").read_text(encoding="utf-8")
@@ -743,12 +769,22 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
 
     skills_dir = agent_dev_dst / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
-    write_text(
-        skills_dir / "README.md",
-        "# Skills\n\nЭта папка автоматически собирает ключевые навыки, которые нужно переносить вместе с агентом.",
-    )
+    source_skills_readme = agent_dev_src / "skills" / "README.md"
+    if source_skills_readme.exists():
+        copy_file(source_skills_readme, skills_dir / "README.md")
+    else:
+        write_text(
+            skills_dir / "README.md",
+            "# Skills\n\nЭта папка автоматически собирает ключевые навыки, которые нужно переносить вместе с агентом.",
+        )
     if SKILL_PATH.exists():
         copy_file(SKILL_PATH, skills_dir / "glavlab-protocol-review" / "SKILL.md")
+
+    files_index_dir = agent_dev_dst / "files-index"
+    files_index_dir.mkdir(parents=True, exist_ok=True)
+    write_text(files_index_dir / "README.md", "# Files Index\n\nЭтот раздел автоматически собирается при экспорте в зеркало.")
+    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(agent_files, agent_dev_dst))
+    write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
 
     manifest_src = agent_dev_src / "github-mirror-manifest.md"
     if manifest_src.exists():
@@ -762,6 +798,16 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
 
 def clone_or_update_repo(repo_root: Path, branch: str) -> None:
     if not repo_root.exists():
+        local_repo = Path("/workspace/memory")
+        if (local_repo / ".git").exists():
+            run(["git", "clone", "--branch", branch, str(local_repo), str(repo_root)])
+            remote_url = run(["git", "remote", "get-url", "origin"], cwd=local_repo).stdout.strip()
+            if remote_url:
+                run(["git", "remote", "set-url", "origin"], cwd=repo_root)
+            run(["git", "fetch", "origin", branch], cwd=repo_root)
+            run(["git", "checkout", branch], cwd=repo_root)
+            run(["git", "pull", "--ff-only", "origin", branch], cwd=repo_root)
+            return
         run(["git", "clone", "--branch", branch, REPO_URL, str(repo_root)])
         return
     run(["git", "fetch", "origin", branch], cwd=repo_root)
@@ -788,7 +834,7 @@ def git_commit_and_push(repo_root: Path, branch: str, message: str, do_push: boo
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Экспорт текущей рабочей среды агента в GitHub-зеркало betonglg-ux/Agentglg")
-    parser.add_argument("--workspace", default="/workspace", help="Корень рабочей среды агента")
+    parser.add_argument("--workspace", default="/workspace/memory", help="Корень рабочей среды агента")
     parser.add_argument("--repo-dir", default="", help="Путь до локального клона репозитория")
     parser.add_argument("--branch", default=DEFAULT_BRANCH, help="Ветка для экспорта")
     parser.add_argument("--message", default="Export agent mirror from workspace", help="Сообщение коммита")
@@ -830,7 +876,7 @@ def main() -> int:
         )
         return 1
 
-    missing_memory_files = [name for name in MEMORY_FILES if not (workspace / "memory" / name).exists()]
+    missing_memory_files = [name for name in REQUIRED_MEMORY_FILES if not (workspace / "memory" / name).exists()]
     if missing_memory_files:
         joined = ", ".join(missing_memory_files)
         raise RuntimeError(
