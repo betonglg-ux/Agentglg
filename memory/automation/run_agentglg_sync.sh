@@ -11,15 +11,15 @@ if [[ ! -d /workspace ]]; then
 fi
 
 if [[ -f "${PRIMARY_SCRIPT}" ]]; then
-  exec python3 "${PRIMARY_SCRIPT}" --workspace /workspace/memory --branch main --only-if-changed
+  exec python3 "${PRIMARY_SCRIPT}" --workspace /workspace/memory --branch master --only-if-changed
 fi
 
 if [[ -f "${FALLBACK_SCRIPT}" ]]; then
-  exec python3 "${FALLBACK_SCRIPT}" --workspace /workspace/memory --branch main --only-if-changed
+  exec python3 "${FALLBACK_SCRIPT}" --workspace /workspace/memory --branch master --only-if-changed
 fi
 
 if [[ -f "${MEMORY_SCRIPT}" ]]; then
-  exec python3 "${MEMORY_SCRIPT}" --workspace /workspace/memory --branch main --only-if-changed
+  exec python3 "${MEMORY_SCRIPT}" --workspace /workspace/memory --branch master --only-if-changed
 fi
 
 if [[ ! -d /workspace/memory/memory/automation ]]; then
