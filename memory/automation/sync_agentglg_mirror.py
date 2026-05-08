@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 REPO_URL = "https://github.com/betonglg-ux/Agentglg.git"
-DEFAULT_BRANCH = "main"
+DEFAULT_BRANCH = "master"
 SKILL_PATH = Path("/root/.codex/skills/hermes/glavlab-protocol-review/SKILL.md")
 TOKEN_FILE_RELATIVE = Path("memory/agentglg-github-token.txt")
 PRIVATE_TOKEN_FILE_RELATIVE = Path("memory/automation/private/agentglg-github-token.txt")
@@ -669,7 +669,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
 
-    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
+    for file_name in ["github-export-bundle.md", "github-mirror-manifest.md", "recovery-plan.md"]:
         copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
     if preserved_changelog is not None:
         write_text(agent_dev_dst / "CHANGELOG.md", preserved_changelog)
