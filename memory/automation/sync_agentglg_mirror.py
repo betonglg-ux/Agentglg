@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 REPO_URL = "https://github.com/betonglg-ux/Agentglg.git"
-DEFAULT_BRANCH = "master"
+DEFAULT_BRANCH = "main"
 SKILL_PATH = Path("/root/.codex/skills/hermes/glavlab-protocol-review/SKILL.md")
 TOKEN_FILE_RELATIVE = Path("memory/agentglg-github-token.txt")
 PRIVATE_TOKEN_FILE_RELATIVE = Path("memory/automation/private/agentglg-github-token.txt")
@@ -669,7 +669,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
 
-    for file_name in ["github-export-bundle.md", "github-mirror-manifest.md", "recovery-plan.md"]:
+    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
         copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
     if preserved_changelog is not None:
         write_text(agent_dev_dst / "CHANGELOG.md", preserved_changelog)
@@ -686,13 +686,13 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     )
 
     copy_tree(protocols_dir, agent_dev_dst / "protocols")
-    write_text(agent_dev_dst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
+    write_text(agentDevDst / "protocols" / "README.md", "# Protocols\n\nЭта папка автоматически собирается из локальной папки `agent_files/protocols/`.")
 
     memory_exports_dir = agent_dev_dst / "memory-exports"
     memory_exports_dir.mkdir(parents=True, exist_ok=True)
     source_memory_exports_readme = agent_dev_src / "memory-exports" / "README.md"
-    if source_memory_exports_readme.exists():
-        copy_file(source_memory_exports_readme, memory_exports_dir / "README.md")
+    if source_memoryExports_readme.exists():
+        copy_file(source_memoryExports_readme, memory_exports_dir / "README.md")
     else:
         write_text(memory_exports_dir / "README.md", build_memory_export_readme())
     write_text(memory_exports_dir / "memory-index.md", build_memory_index(memory_dir))
@@ -800,18 +800,19 @@ def clone_or_update_repo(repo_root: Path, branch: str) -> None:
     if not repo_root.exists():
         local_repo = Path("/workspace/memory")
         if (local_repo / ".git").exists():
-            run(["git", "clone", "--branch", branch, str(local_repo), str(repo_root)])
-            remote_url = run(["git", "remote", "get-url", "origin"], cwd=local_repo).stdout.strip()
-            if remote_url:
-                run(["git", "remote", "set-url", "origin"], cwd=repo_root)
+            run(["git", "clone", str(local_repo), str(repo_root)])
+            run(["git", "remote", "set-url", "origin", REPO_URL], cwd=repo_root)
             run(["git", "fetch", "origin", branch], cwd=repo_root)
-            run(["git", "checkout", branch], cwd=repo_root)
-            run(["git", "pull", "--ff-only", "origin", branch], cwd=repo_root)
+            run(["git", "checkout", "-B", branch, f"origin/{branch}"], cwd=repo_root)
             return
         run(["git", "clone", "--branch", branch, REPO_URL, str(repo_root)])
         return
+    run(["git", "remote", "set-url", "origin", REPO_URL], cwd=repo_root)
     run(["git", "fetch", "origin", branch], cwd=repo_root)
-    run(["git", "checkout", branch], cwd=repo_root)
+    run(["git", "checkout", branch], cwd=repo_root, check=False)
+    if run(["git", "rev-parse", "--verify", branch], cwd=repo_root, check=False).returncode != 0:
+        run(["git", "checkout", "-B", branch, f"origin/{branch}"], cwd=repo_root)
+        return
     run(["git", "pull", "--ff-only", "origin", branch], cwd=repo_root)
 
 
