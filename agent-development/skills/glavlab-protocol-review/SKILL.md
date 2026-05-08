@@ -1,6 +1,9 @@
 ---
 name: glavlab-protocol-review
-description: Use when the user asks to check one or more PDF construction test protocols, split a PDF into separate protocols, validate protocol formatting and calculations, or produce a page-by-page defect report for ООО «ГЛАВЛАБГРУПП».
+description: "Use when the user asks to check one or more PDF construction test protocols,\
+  \ split a PDF into separate protocols, validate protocol formatting and calculations,\
+  \ or produce a page-by-page defect report for \u041E\u041E\u041E \xAB\u0413\u041B\
+  \u0410\u0412\u041B\u0410\u0411\u0413\u0420\u0423\u041F\u041F\xBB."
 ---
 
 # Главлаб: проверка строительных протоколов
@@ -10,6 +13,7 @@ description: Use when the user asks to check one or more PDF construction test p
 ## Когда использовать
 
 Используй `$glavlab-protocol-review`, когда пользователь:
+
 - загружает один или несколько PDF-протоколов и просит проверить их;
 - просит найти ошибки в оформлении, расчетах, датах, колонтитулах, таблицах, исполнителях или заполнении полей;
 - просит проверить набор протоколов, где в одном PDF могут идти несколько разных протоколов подряд;
@@ -20,6 +24,7 @@ description: Use when the user asks to check one or more PDF construction test p
 ## Ожидаемые входы
 
 Обычно на входе есть:
+
 - один PDF с одним или несколькими протоколами;
 - несколько отдельных PDF;
 - иногда дополнительные шаблоны, образцы или связанные файлы.
@@ -40,6 +45,7 @@ description: Use when the user asks to check one or more PDF construction test p
 ## Как разделять PDF на отдельные протоколы
 
 Считай началом нового протокола новую шапку вида:
+
 - «Отчет об испытаниях №...»
 - «Протокол об испытаниях №...»
 - «Протокол измерений №...»
@@ -48,6 +54,7 @@ description: Use when the user asks to check one or more PDF construction test p
 Дальше объединяй страницы в один протокол по номеру, типу и непрерывности содержания.
 
 Правила:
+
 - внутри одного PDF может быть несколько протоколов подряд;
 - многостраничный протокол анализируй как единое целое;
 - одинаковые порядковые номера или номера строк в разных протоколах не сравнивай между собой;
@@ -56,6 +63,7 @@ description: Use when the user asks to check one or more PDF construction test p
 ## Как определять тип протокола
 
 Распознавай как минимум:
+
 - УК — прочность железобетонных конструкций неразрушающим методом;
 - КП — прочность бетона по контрольным образцам-кубам;
 - КУ — коэффициент уплотнения;
@@ -78,6 +86,7 @@ description: Use when the user asks to check one or more PDF construction test p
 ## Что проверять всегда
 
 Всегда проверяй, где это применимо:
+
 - номер протокола в шапке;
 - номер протокола в нижнем колонтитуле;
 - отсутствие двойного или битого номера;
@@ -92,6 +101,8 @@ description: Use when the user asks to check one or more PDF construction test p
 - подозрительные обозначения осей;
 - ответственных исполнителей и их должности.
 
+При этом любые несоответствия, связанные именно с нумерацией страниц в нижнем колонтитуле (например, `Страница 3 из 3`, `Страница 1 из 5` и аналогичные форматы), не считай ошибкой и не выноси в замечания. Также не используй такие расхождения как основание для замечания о неполноте протокола.
+
 Полные правила проверки и списки допустимых исполнителей хранятся в `references/protocol-rules.md`.
 
 ## Ключевые проверки, которые нельзя упрощать
@@ -105,6 +116,7 @@ description: Use when the user asks to check one or more PDF construction test p
 Возраст считай как разницу между датой испытаний и датой бетонирования или изготовления. Если возраст не сходится — это ошибка.
 
 Для даты градуировки используй только явные строки:
+
 - «Дата построения градуировочной зависимости»
 - «Дата обновления градуировочной зависимости»
 
@@ -123,6 +135,7 @@ description: Use when the user asks to check one or more PDF construction test p
 ### 5. Таблицы
 
 Проверяй именно видимые дефекты таблиц:
+
 - верхнюю границу;
 - правую внешнюю границу;
 - правый верхний угол;
@@ -134,6 +147,7 @@ description: Use when the user asks to check one or more PDF construction test p
 ### 6. Порядковые номера
 
 Проверяй только в рамках одного протокола:
+
 - первый № п/п должен быть 1;
 - номера должны идти по возрастанию;
 - регрессия вроде `4 -> 3` — ошибка;
@@ -148,7 +162,9 @@ description: Use when the user asks to check one or more PDF construction test p
 ## Специализация по типам
 
 ### УК
+
 Проверяй:
+
 - возраст конструкции;
 - повторяющиеся конструкции;
 - обозначения осей;
@@ -159,7 +175,9 @@ description: Use when the user asks to check one or more PDF construction test p
 - оформление таблиц.
 
 ### КП
+
 Проверяй:
+
 - проектный класс;
 - требуемую прочность;
 - приведенную прочность;
@@ -177,7 +195,9 @@ description: Use when the user asks to check one or more PDF construction test p
 Никогда не рассчитывай процент из разрушающей нагрузки.
 
 ### КУ
+
 Проверяй:
+
 - коэффициент уплотнения;
 - требуемый коэффициент;
 - соответствие вывода данным таблицы;
@@ -186,7 +206,9 @@ description: Use when the user asks to check one or more PDF construction test p
 - замкнутость таблицы.
 
 ### ВС
+
 Проверяй:
+
 - обязательные поля;
 - уровень освещенности;
 - оборудование;
@@ -201,6 +223,7 @@ description: Use when the user asks to check one or more PDF construction test p
 ## Правила визуальной локализации
 
 Подсвечивай только конкретное место ошибки:
+
 - ячейку;
 - номер строки;
 - число;
@@ -210,6 +233,7 @@ description: Use when the user asks to check one or more PDF construction test p
 - конкретный разрыв границы таблицы.
 
 Нельзя:
+
 - выделять почти весь лист;
 - строить большой fallback-прямоугольник без необходимости;
 - ставить рамку далеко от ошибки.
@@ -221,6 +245,7 @@ description: Use when the user asks to check one or more PDF construction test p
 Строго соблюдай эту структуру.
 
 ### Сводка по файлу
+
 - Файл
 - Тип или типы протоколов
 - Номер или номера
@@ -228,7 +253,9 @@ description: Use when the user asks to check one or more PDF construction test p
 - Сколько критичных, важных, мелких
 
 ### Замечания по страницам
+
 Для каждой страницы:
+
 - `— Страница N:`
 - затем нумерованный список замечаний:
   - `[критично/важно/мелко] Краткое название ошибки.`
@@ -237,16 +264,19 @@ description: Use when the user asks to check one or more PDF construction test p
   - если есть сравнение — показать оба значения.
 
 Если ошибок нет:
+
 - напиши, что замечаний не найдено или критичных замечаний не найдено.
 
 ## Как оценивать серьезность
 
 Используй три уровня:
+
 - `критично` — ошибка влияет на юридическую, расчетную или протокольную корректность;
 - `важно` — ошибка оформления, логики, таблицы, ролей, шапки или колонтитула, требующая исправления;
 - `мелко` — незначительное оформление без потери смысла.
 
 Обычно критично:
+
 - неверный номер протокола;
 - неверная дата;
 - просроченная поверка;
@@ -259,6 +289,7 @@ description: Use when the user asks to check one or more PDF construction test p
 ## Защита от ложных срабатываний
 
 Перед тем как добавить замечание, проверь:
+
 1. Ошибка относится именно к текущему протоколу, а не к соседнему.
 2. Значение считано из нужной строки и нужной колонки.
 3. Дата распознана из правильного поля.
@@ -270,3 +301,4 @@ description: Use when the user asks to check one or more PDF construction test p
 ## Supporting Files
 
 - `references/protocol-rules.md` — полный регламент проверок, исключений, критериев серьезности и допустимых ответственных исполнителей. Загружай его целиком перед финальной проверкой PDF-протоколов.
+
