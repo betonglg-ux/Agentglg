@@ -2,14 +2,14 @@
 set -euo pipefail
 
 TOKEN="${AGENTGLG_GITHUB_TOKEN:-${GITHUB_TOKEN:-}}"
-TOKEN_FILE="/workspace/memory/agentglg-github-token.txt"
+TOKEN_FILE="/workspace/memory/memory/agentglg-github-token.txt"
 
 if [[ -z "${TOKEN}" ]]; then
   echo "Не найден токен. Задайте AGENTGLG_GITHUB_TOKEN или GITHUB_TOKEN и запустите снова." >&2
   exit 1
 fi
 
-mkdir -p /workspace/memory
+mkdir -p /workspace/memory/memory
 printf '%s\n' "${TOKEN}" > "${TOKEN_FILE}"
 chmod 600 "${TOKEN_FILE}"
 
@@ -21,9 +21,9 @@ cat <<'EOF'
 Токен сохранен в памяти агента для будущих автоматических запусков.
 Теперь синхронизацию можно запускать так:
 
-bash /workspace/memory/automation/export_agentglg_mirror.sh
+bash /workspace/memory/memory/automation/export_agentglg_mirror.sh
 
 Для пробного запуска без отправки:
 
-bash /workspace/memory/automation/export_agentglg_mirror.sh --no-push
+bash /workspace/memory/memory/automation/export_agentglg_mirror.sh --no-push
 EOF
