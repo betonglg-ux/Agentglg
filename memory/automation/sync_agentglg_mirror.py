@@ -212,6 +212,13 @@ def format_attached_files_index(agent_files_dir: Path, service_dir: Path | None 
             if rel.parts and rel.parts[0] == "protocols":
                 continue
             service_files.append(rel)
+        expected_generated = [
+            Path("files-index/attached-files-index.md"),
+            Path("files-index/templates-index.md"),
+        ]
+        for rel in expected_generated:
+            if rel not in service_files:
+                service_files.append(rel)
         service_files.sort()
     xl_files = rel_files(agent_files_dir / "xl") if (agent_files_dir / "xl").exists() else []
 
@@ -294,8 +301,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
