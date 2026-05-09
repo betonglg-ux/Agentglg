@@ -18,6 +18,7 @@
 - рабочая память в `/workspace/memory/memory/`, симметричные файлы в `agent-development/` и защитные raw-memory-дубли сверены перед синхронизацией; содержательных расхождений не подтверждено.
 - в повторной сверке подтверждено, что `agent-development/current-agent-instructions.md` и корневой `AGENTS.md` уже соответствуют текущей рабочей среде и не требуют перезаписи;
 - защитный дубль `agent-development/confirmed-error-patterns.md` повторно выровнен по первичному файлу `/workspace/memory/memory/confirmed-error-patterns.md` без содержательных изменений.
+- обновлен экспортный дубль `agent-development/memory-exports/raw-memory/automation/README.md`, чтобы он снова совпадал с актуальным файлом `/workspace/memory/memory/automation/README.md`.
 
 ### Примечания
 - локальная память осталась первичным источником истины и не переписывалась данными зеркала;
