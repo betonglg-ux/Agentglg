@@ -12,11 +12,14 @@
 - из `agent_files/agent-development/` удалены устаревшие служебные файлы и экспортные дубли, которых больше нет в текущей рабочей среде;
 - `agent_files/agent-development/CHANGELOG.md` и `agent_files/agent-development/files-index/templates-index.md` возвращены к актуальной локальной версии из рабочей среды;
 - рабочая память в `/workspace/memory/memory/`, симметричные файлы в `agent-development/` и защитные raw-memory-дубли сверены перед синхронизацией; содержательных расхождений не подтверждено.
+- в повторной сверке подтверждено, что `agent-development/current-agent-instructions.md` и корневой `AGENTS.md` уже соответствуют текущей рабочей среде и не требуют перезаписи;
+- защитный дубль `agent-development/confirmed-error-patterns.md` повторно выровнен по первичному файлу `/workspace/memory/memory/confirmed-error-patterns.md` без содержательных изменений.
 
 ### Примечания
 - локальная память осталась первичным источником истины и не переписывалась данными зеркала;
 - каталога `memory/snapshots/` на момент проверки не было;
 - удалённая ветка `origin/master` на момент синхронизации совпадала с локальной до внесения этих изменений.
+- лишние файлы в `agent_files/agent-development/` удалялись только там, где они отсутствуют в текущем `/workspace/agent_files/`, без обратной подмены рабочих данных.
 
 ## 2026-05-08
 
