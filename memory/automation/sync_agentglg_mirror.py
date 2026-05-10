@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 REPO_URL = "https://github.com/betonglg-ux/Agentglg.git"
-DEFAULT_BRANCH = "main"
+DEFAULT_BRANCH = "master"
 SKILL_PATH = Path("/root/.codex/skills/hermes/glavlab-protocol-review/SKILL.md")
 TOKEN_FILE_RELATIVE = Path("memory/agentglg-github-token.txt")
 PRIVATE_TOKEN_FILE_RELATIVE = Path("memory/automation/private/agentglg-github-token.txt")
@@ -212,13 +212,6 @@ def format_attached_files_index(agent_files_dir: Path, service_dir: Path | None 
             if rel.parts and rel.parts[0] == "protocols":
                 continue
             service_files.append(rel)
-        expected_generated = [
-            Path("files-index/attached-files-index.md"),
-            Path("files-index/templates-index.md"),
-        ]
-        for rel in expected_generated:
-            if rel not in service_files:
-                service_files.append(rel)
         service_files.sort()
     xl_files = rel_files(agent_files_dir / "xl") if (agent_files_dir / "xl").exists() else []
 
@@ -286,8 +279,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
         "Основные источники истины:",
         "- инструкции агента из `AGENTS.md`;",
         "- навык `glavlab-protocol-review`;",
-        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;",
-        "- память агента из папки `memory/`.",
+        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;
+        - память агента из папки `memory/`.",
         "",
         "Типы шаблонов, найденные в текущей среде:",
     ]
@@ -301,8 +294,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -362,8 +355,8 @@ def build_skills_index_readme() -> str:
             "",
             "При восстановлении похожего агента нужно перенести не только само упоминание навыка, но и связанный с ним контекст:",
             "",
-            "1. сам навык `glavlab-protocol-review`;",
-            "2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
+            "1. сам навык `glavlab-protocol-review`;
+            2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
             "3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;",
             "4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;",
             "5. материалы GitHub-зеркала, если навык или его рабочая логика там были дополнены.",
