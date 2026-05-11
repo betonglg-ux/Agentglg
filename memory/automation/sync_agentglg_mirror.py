@@ -95,12 +95,32 @@ def workspace_uses_git(workspace: Path) -> bool:
     return (workspace / ".git").exists()
 
 
-def detect_repo_url(workspace: Path) -> str:
+def get_workspace_origin_url(workspace: Path) -> str:
     if not workspace_uses_git(workspace):
-        return DEFAULT_REPO_URL
+        return ""
     result = run(["git", "remote", "get-url", "origin"], cwd=workspace, check=False)
-    repo_url = result.stdout.strip()
-    return repo_url or DEFAULT_REPO_URL
+    return result.stdout.strip()
+
+
+def normalize_repo_url(repo_url: str) -> str:
+    url = repo_url.strip()
+    if url.endswith(".git"):
+        url = url[:-4]
+    if url.startswith("git@github.com:"):
+        url = "https://github.com/" + url.removeprefix("git@github.com:")
+    return url.rstrip("/")
+
+
+def is_target_mirror_repo_url(repo_url: str) -> bool:
+    normalized = normalize_repo_url(repo_url)
+    return normalized.endswith("github.com/betonglg-ux/Agentglg")
+
+
+def detect_repo_url(workspace: Path) -> str:
+    repo_url = get_workspace_origin_url(workspace)
+    if repo_url and is_target_mirror_repo_url(repo_url):
+        return repo_url
+    return DEFAULT_REPO_URL
 
 
 def repo_uses_direct_github(repo_url: str) -> bool:
@@ -327,8 +347,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -888,8 +908,9 @@ def main() -> int:
         print(f"Не найден workspace: {workspace}", file=sys.stderr)
         return 1
 
-    branch = args.branch or detect_branch(workspace)
+    origin_repo_url = get_workspace_origin_url(workspace)
     repo_url = detect_repo_url(workspace)
+    branch = args.branch or (detect_branch(workspace) if is_target_mirror_repo_url(origin_repo_url) else DEFAULT_BRANCH)
 
     fingerprint = compute_workspace_fingerprint(workspace)
     if args.only_if_changed:
