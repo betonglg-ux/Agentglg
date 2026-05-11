@@ -117,6 +117,9 @@ def is_target_mirror_repo_url(repo_url: str) -> bool:
 
 
 def detect_repo_url(workspace: Path) -> str:
+    env_repo_url = os.getenv("AGENTGLG_REPO_URL")
+    if env_repo_url:
+        return env_repo_url.strip()
     repo_url = get_workspace_origin_url(workspace)
     if repo_url and is_target_mirror_repo_url(repo_url):
         return repo_url
@@ -128,19 +131,6 @@ def repo_uses_direct_github(repo_url: str) -> bool:
 
 
 def detect_branch(workspace: Path) -> str:
-    if workspace_uses_git(workspace):
-        current_branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=workspace, check=False).stdout.strip()
-        if current_branch and current_branch != "HEAD":
-            return current_branch
-
-        origin_head = run(
-            ["git", "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"],
-            cwd=workspace,
-            check=False,
-        ).stdout.strip()
-        if origin_head.startswith("refs/remotes/origin/"):
-            return origin_head.removeprefix("refs/remotes/origin/")
-
     return DEFAULT_BRANCH
 
 
@@ -330,9 +320,9 @@ def build_agent_summary(protocols_dir: Path) -> str:
         "- перенос устойчивых знаний и шаблонов в GitHub-зеркало.",
         "",
         "Основные источники истины:",
-        "- инструкции агента из `AGENTS.md`;",
-        "- навык `glavlab-protocol-review`;",
-        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;",
+        "- инструкции агента из `AGENTS.md` ;",
+        "- навык `glavlab-protocol-review` ;",
+        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/` ;",
         "- память агента из папки `memory/`.",
         "",
         "Типы шаблонов, найденные в текущей среде:",
@@ -347,8 +337,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;
-            - папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;",
+            "- папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -408,7 +398,7 @@ def build_skills_index_readme() -> str:
             "",
             "При восстановлении похожего агента нужно перенести не только само упоминание навыка, но и связанный с ним контекст:",
             "",
-            "1. сам навык `glavlab-protocol-review`;
+            "1. сам навык `glavlab-protocol-review` ;",
             "2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
             "3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;",
             "4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;",
@@ -722,7 +712,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
 
-    for file_name in ["github-export-bundle.md", "github-mirror-manifest.md", "recovery-plan.md"]:
+    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
         copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
     if preserved_changelog is not None:
         write_text(agent_dev_dst / "CHANGELOG.md", preserved_changelog)
@@ -889,7 +879,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Экспорт текущей рабочей среды агента в GitHub-зеркало betonglg-ux/Agentglg")
     parser.add_argument("--workspace", default="/workspace/memory", help="Корень рабочей среды агента")
     parser.add_argument("--repo-dir", default="", help="Путь до локального клона репозитория")
-    parser.add_argument("--branch", default="", help="Ветка для экспорта. По умолчанию определяется из локального зеркала.")
+    parser.add_argument("--repo-url", default="", help="URL GitHub-зеркала. По умолчанию используется betonglg-ux/Agentglg")
+    parser.add_argument("--branch", default="", help="Ветка для экспорта. По умолчанию используется main")
     parser.add_argument("--message", default="Export agent mirror from workspace", help="Сообщение коммита")
     parser.add_argument("--no-push", action="store_true", help="Подготовить и закоммитить изменения без отправки в GitHub")
     parser.add_argument("--only-if-changed", action="store_true", help="Запускать экспорт только если рабочие файлы изменились")
@@ -909,7 +900,7 @@ def main() -> int:
         return 1
 
     origin_repo_url = get_workspace_origin_url(workspace)
-    repo_url = detect_repo_url(workspace)
+    repo_url = args.repo_url or detect_repo_url(workspace)
     branch = args.branch or (detect_branch(workspace) if is_target_mirror_repo_url(origin_repo_url) else DEFAULT_BRANCH)
 
     fingerprint = compute_workspace_fingerprint(workspace)
