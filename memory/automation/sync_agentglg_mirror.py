@@ -317,8 +317,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
         "Основные источники истины:",
         "- инструкции агента из `AGENTS.md`;",
         "- навык `glavlab-protocol-review`;",
-        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;",
-        "- память агента из папки `memory/`.",
+        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;
+        - память агента из папки `memory/`.",
         "",
         "Типы шаблонов, найденные в текущей среде:",
     ]
@@ -332,8 +332,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/` ;",
-            "- папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
