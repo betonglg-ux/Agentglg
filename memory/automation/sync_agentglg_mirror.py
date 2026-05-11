@@ -317,8 +317,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
         "Основные источники истины:",
         "- инструкции агента из `AGENTS.md`;",
         "- навык `glavlab-protocol-review`;",
-        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;
-        - память агента из папки `memory/`.",
+        "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;",
+        "- память агента из папки `memory/`.",
         "",
         "Типы шаблонов, найденные в текущей среде:",
     ]
@@ -332,8 +332,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;
-            - папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;",
+            "- папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -707,7 +707,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
 
-    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
+    for file_name in ["github-export-bundle.md", "github-mirror-manifest.md", "recovery-plan.md"]:
         copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
     if preserved_changelog is not None:
         write_text(agent_dev_dst / "CHANGELOG.md", preserved_changelog)
