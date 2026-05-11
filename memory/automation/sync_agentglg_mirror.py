@@ -100,9 +100,7 @@ def detect_repo_url(workspace: Path) -> str:
         return DEFAULT_REPO_URL
     result = run(["git", "remote", "get-url", "origin"], cwd=workspace, check=False)
     repo_url = result.stdout.strip()
-    if repo_uses_direct_github(repo_url):
-        return repo_url
-    return DEFAULT_REPO_URL
+    return repo_url or DEFAULT_REPO_URL
 
 
 def repo_uses_direct_github(repo_url: str) -> bool:
@@ -111,9 +109,6 @@ def repo_uses_direct_github(repo_url: str) -> bool:
 
 def detect_branch(workspace: Path) -> str:
     if workspace_uses_git(workspace):
-        origin_url = run(["git", "remote", "get-url", "origin"], cwd=workspace, check=False).stdout.strip()
-        if not repo_uses_direct_github(origin_url):
-            return DEFAULT_BRANCH
         current_branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=workspace, check=False).stdout.strip()
         if current_branch and current_branch != "HEAD":
             return current_branch
@@ -393,7 +388,7 @@ def build_skills_index_readme() -> str:
             "",
             "При восстановлении похожего агента нужно перенести не только само упоминание навыка, но и связанный с ним контекст:",
             "",
-            "1. сам навык `glavlab-protocol-review`;",
+            "1. сам навык `glavlab-protocol-review`;
             "2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
             "3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;",
             "4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;",
@@ -707,7 +702,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         shutil.rmtree(agent_dev_dst)
     agent_dev_dst.mkdir(parents=True, exist_ok=True)
 
-    for file_name in ["github-export-bundle.md", "github-mirror-manifest.md", "recovery-plan.md"]:
+    for file_name in ["github-mirror-manifest.md", "github-export-bundle.md", "recovery-plan.md"]:
         copy_file(agent_dev_src / file_name, agent_dev_dst / file_name)
     if preserved_changelog is not None:
         write_text(agent_dev_dst / "CHANGELOG.md", preserved_changelog)
