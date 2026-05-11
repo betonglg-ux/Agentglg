@@ -8,4 +8,4 @@ if [[ ! -f "${SCRIPT}" ]]; then
   exit 1
 fi
 
-exec python3 "${SCRIPT}" --workspace /workspace/memory --branch main --only-if-changed "$@"
+exec python3 "${SCRIPT}" --workspace /workspace/memory --only-if-changed "$@"
