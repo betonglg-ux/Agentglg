@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 
 
-REPO_URL = "https://github.com/betonglg-ux/Agentglg.git"
+DEFAULT_REPO_URL = "https://github.com/betonglg-ux/Agentglg.git"
 DEFAULT_BRANCH = "main"
 SKILL_PATH = Path("/root/.codex/skills/hermes/glavlab-protocol-review/SKILL.md")
 TOKEN_FILE_RELATIVE = Path("memory/agentglg-github-token.txt")
@@ -89,6 +89,39 @@ def copy_file(src: Path, dst: Path) -> None:
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text.rstrip() + "\n", encoding="utf-8")
+
+
+def workspace_uses_git(workspace: Path) -> bool:
+    return (workspace / ".git").exists()
+
+
+def detect_repo_url(workspace: Path) -> str:
+    if not workspace_uses_git(workspace):
+        return DEFAULT_REPO_URL
+    result = run(["git", "remote", "get-url", "origin"], cwd=workspace, check=False)
+    repo_url = result.stdout.strip()
+    return repo_url or DEFAULT_REPO_URL
+
+
+def repo_uses_direct_github(repo_url: str) -> bool:
+    return "github.com" in repo_url and "chatgpt.com/backend-api/git-authed/" not in repo_url
+
+
+def detect_branch(workspace: Path) -> str:
+    if workspace_uses_git(workspace):
+        current_branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=workspace, check=False).stdout.strip()
+        if current_branch and current_branch != "HEAD":
+            return current_branch
+
+        origin_head = run(
+            ["git", "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"],
+            cwd=workspace,
+            check=False,
+        ).stdout.strip()
+        if origin_head.startswith("refs/remotes/origin/"):
+            return origin_head.removeprefix("refs/remotes/origin/")
+
+    return DEFAULT_BRANCH
 
 
 def normalize_significant_lines(text: str) -> list[str]:
@@ -294,8 +327,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -355,11 +388,11 @@ def build_skills_index_readme() -> str:
             "",
             "При восстановлении похожего агента нужно перенести не только само упоминание навыка, но и связанный с ним контекст:",
             "",
-            "1. сам навык `glavlab-protocol-review`;",
-            "2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
-            "3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;",
-            "4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;",
-            "5. материалы GitHub-зеркала, если навык или его рабочая логика там были дополнены.",
+            "1. сам навык `glavlab-protocol-review`;
+            2. инструкции агента, которые ссылаются на этот навык как на основной регламент;
+            3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;
+            4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;
+            5. материалы GitHub-зеркала, если навык или его рабочая логика там были дополнены.",
             "",
             "## 5. Минимальный комплект для клонирования агента",
             "",
@@ -796,18 +829,17 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
             mirrored.unlink()
 
 
-def clone_or_update_repo(repo_root: Path, branch: str) -> None:
+def clone_or_update_repo(repo_root: Path, branch: str, repo_url: str, workspace: Path) -> None:
     if not repo_root.exists():
-        local_repo = Path("/workspace/memory")
-        if (local_repo / ".git").exists():
-            run(["git", "clone", str(local_repo), str(repo_root)])
-            run(["git", "remote", "set-url", "origin", REPO_URL], cwd=repo_root)
+        if workspace_uses_git(workspace):
+            run(["git", "clone", str(workspace), str(repo_root)])
+            run(["git", "remote", "set-url", "origin", repo_url], cwd=repo_root)
             run(["git", "fetch", "origin", branch], cwd=repo_root)
             run(["git", "checkout", "-B", branch, f"origin/{branch}"], cwd=repo_root)
             return
-        run(["git", "clone", "--branch", branch, REPO_URL, str(repo_root)])
+        run(["git", "clone", "--branch", branch, repo_url, str(repo_root)])
         return
-    run(["git", "remote", "set-url", "origin", REPO_URL], cwd=repo_root)
+    run(["git", "remote", "set-url", "origin", repo_url], cwd=repo_root)
     run(["git", "fetch", "origin", branch], cwd=repo_root)
     run(["git", "checkout", branch], cwd=repo_root, check=False)
     if run(["git", "rev-parse", "--verify", branch], cwd=repo_root, check=False).returncode != 0:
@@ -837,7 +869,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Экспорт текущей рабочей среды агента в GitHub-зеркало betonglg-ux/Agentglg")
     parser.add_argument("--workspace", default="/workspace/memory", help="Корень рабочей среды агента")
     parser.add_argument("--repo-dir", default="", help="Путь до локального клона репозитория")
-    parser.add_argument("--branch", default=DEFAULT_BRANCH, help="Ветка для экспорта")
+    parser.add_argument("--branch", default="", help="Ветка для экспорта. По умолчанию определяется из локального зеркала.")
     parser.add_argument("--message", default="Export agent mirror from workspace", help="Сообщение коммита")
     parser.add_argument("--no-push", action="store_true", help="Подготовить и закоммитить изменения без отправки в GitHub")
     parser.add_argument("--only-if-changed", action="store_true", help="Запускать экспорт только если рабочие файлы изменились")
@@ -856,6 +888,9 @@ def main() -> int:
         print(f"Не найден workspace: {workspace}", file=sys.stderr)
         return 1
 
+    branch = args.branch or detect_branch(workspace)
+    repo_url = detect_repo_url(workspace)
+
     fingerprint = compute_workspace_fingerprint(workspace)
     if args.only_if_changed:
         previous = read_sync_state(workspace)
@@ -866,9 +901,9 @@ def main() -> int:
     token = load_token(workspace)
     if token:
         ensure_git_auth(token)
-    elif has_git_github_credentials():
+    elif repo_uses_direct_github(repo_url) and has_git_github_credentials():
         pass
-    elif not args.no_push:
+    elif not args.no_push and repo_uses_direct_github(repo_url):
         print(
             "Не найден токен GitHub. Задайте AGENTGLG_GITHUB_TOKEN/GITHUB_TOKEN "
             f"или сохраните токен в {workspace / PRIVATE_TOKEN_FILE_RELATIVE} "
@@ -888,7 +923,7 @@ def main() -> int:
 
     snapshot_dir = snapshot_memory_files(workspace)
     repo_dir = Path(args.repo_dir).resolve() if args.repo_dir else Path(tempfile.gettempdir()) / "agentglg-mirror-repo"
-    clone_or_update_repo(repo_dir, args.branch)
+    clone_or_update_repo(repo_dir, branch, repo_url, workspace)
     regressions = detect_memory_regressions(repo_dir, workspace)
     if regressions and not args.allow_memory_overwrite:
         details = "\n".join(f"- {item}" for item in regressions)
@@ -903,7 +938,7 @@ def main() -> int:
     prepare_repo(repo_dir, workspace)
     if git_has_changes(repo_dir):
         append_sync_changelog(repo_dir / "agent-development" / "CHANGELOG.md")
-    git_commit_and_push(repo_dir, args.branch, args.message, do_push=not args.no_push)
+    git_commit_and_push(repo_dir, branch, args.message, do_push=not args.no_push)
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
     write_sync_state(workspace, fingerprint, head)
