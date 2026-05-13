@@ -116,12 +116,23 @@ def is_target_mirror_repo_url(repo_url: str) -> bool:
     return normalized.endswith("github.com/betonglg-ux/Agentglg")
 
 
+def workspace_looks_like_mirror_checkout(workspace: Path) -> bool:
+    required_paths = [
+        workspace / "github-mirror-manifest.md",
+        workspace / "agent-development",
+        workspace / "memory" / "automation" / "sync_agentglg_mirror.py",
+    ]
+    return all(path.exists() for path in required_paths)
+
+
 def detect_repo_url(workspace: Path) -> str:
     env_repo_url = os.getenv("AGENTGLG_REPO_URL")
     if env_repo_url:
         return env_repo_url.strip()
     repo_url = get_workspace_origin_url(workspace)
     if repo_url and is_target_mirror_repo_url(repo_url):
+        return repo_url
+    if repo_url and workspace_looks_like_mirror_checkout(workspace):
         return repo_url
     return DEFAULT_REPO_URL
 
