@@ -131,6 +131,27 @@ def repo_uses_direct_github(repo_url: str) -> bool:
 
 
 def detect_branch(workspace: Path) -> str:
+    env_branch = os.getenv("AGENTGLG_BRANCH")
+    if env_branch:
+        return env_branch.strip()
+
+    if workspace_uses_git(workspace):
+        current_branch = run(
+            ["git", "branch", "--show-current"],
+            cwd=workspace,
+            check=False,
+        ).stdout.strip()
+        if current_branch:
+            return current_branch
+
+        remote_head = run(
+            ["git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+            cwd=workspace,
+            check=False,
+        ).stdout.strip()
+        if remote_head.startswith("origin/"):
+            return remote_head.removeprefix("origin/")
+
     return DEFAULT_BRANCH
 
 
@@ -337,8 +358,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
-            "- папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;
+            - папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -901,7 +922,7 @@ def main() -> int:
 
     origin_repo_url = get_workspace_origin_url(workspace)
     repo_url = args.repo_url or detect_repo_url(workspace)
-    branch = args.branch or (detect_branch(workspace) if is_target_mirror_repo_url(origin_repo_url) else DEFAULT_BRANCH)
+    branch = args.branch or detect_branch(workspace)
 
     fingerprint = compute_workspace_fingerprint(workspace)
     if args.only_if_changed:
