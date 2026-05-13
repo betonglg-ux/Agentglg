@@ -284,6 +284,8 @@ def format_attached_files_index(agent_files_dir: Path, service_dir: Path | None 
             if not path.is_file():
                 continue
             rel = path.relative_to(service_root)
+            if rel.as_posix() == "files-index/attached-files-index.md":
+                continue
             if rel.parts and rel.parts[0] == "protocols":
                 continue
             service_files.append(rel)
@@ -523,7 +525,7 @@ def refresh_agent_files_service_dir(
 
     files_index_dir = target_dir / "files-index"
     files_index_dir.mkdir(parents=True, exist_ok=True)
-    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(workspace / "agent_files", target_dir))
+    write_text(files_index_dir / "attached-files-index.md", format_attached_files_index(workspace / "agent_files", source_dir))
     write_text(files_index_dir / "templates-index.md", format_protocols(protocols_dir))
 
 
