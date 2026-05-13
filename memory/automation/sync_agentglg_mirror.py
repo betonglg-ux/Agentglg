@@ -358,8 +358,8 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;
-            - папку `protocols/` с шаблонами;",
+            "- структуру `agent-development/`;",
+            "- папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
     )
@@ -696,7 +696,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     agent_dev_src = agent_files / "agent-development"
     agent_dev_dst = repo_root / "agent-development"
 
-    ignore_workspace = build_workspace_copyIgnore(workspace)
+    ignore_workspace = build_workspace_copy_ignore(workspace)
     tracked_top_level = set()
     for child in sorted(workspace.iterdir()):
         name = child.name
