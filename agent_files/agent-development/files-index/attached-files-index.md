@@ -6,7 +6,6 @@
 - `agent-development/CHANGELOG.md`
 - `agent-development/agent-summary.md`
 - `agent-development/current-agent-instructions.md`
-- `agent-development/files-index/attached-files-index.md`
 - `agent-development/files-index/templates-index.md`
 - `agent-development/memory-exports/README.md`
 - `agent-development/memory-exports/confirmed-error-patterns-export.md`
