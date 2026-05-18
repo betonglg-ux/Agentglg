@@ -682,22 +682,30 @@ def compute_workspace_fingerprint(workspace: Path) -> str:
     return digest.hexdigest()
 
 
-def read_sync_state(workspace: Path) -> str | None:
+def read_sync_state(workspace: Path) -> dict[str, str] | None:
     state_path = workspace / SYNC_STATE_FILE_RELATIVE
     if not state_path.exists():
         return None
+    state: dict[str, str] = {}
     for line in state_path.read_text(encoding="utf-8").splitlines():
-        if line.startswith("fingerprint="):
-            value = line.partition("=")[2].strip()
-            return value or None
-    return None
+        key, separator, value = line.partition("=")
+        if not separator:
+            continue
+        state[key.strip()] = value.strip()
+    return state or None
 
 
-def write_sync_state(workspace: Path, fingerprint: str, commit_sha: str) -> None:
+def write_sync_state(workspace: Path, fingerprint: str, commit_sha: str, repo_url: str, branch: str) -> None:
     state_path = workspace / SYNC_STATE_FILE_RELATIVE
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(
-        f"fingerprint={fingerprint}\ncommit={commit_sha}\nupdated_at={dt.datetime.now(dt.UTC).isoformat()}\n",
+        (
+            f"fingerprint={fingerprint}\n"
+            f"commit={commit_sha}\n"
+            f"repo_url={normalize_repo_url(repo_url)}\n"
+            f"branch={branch}\n"
+            f"updated_at={dt.datetime.now(dt.UTC).isoformat()}\n"
+        ),
         encoding="utf-8",
     )
 
@@ -939,8 +947,16 @@ def main() -> int:
 
     fingerprint = compute_workspace_fingerprint(workspace)
     if args.only_if_changed:
-        previous = read_sync_state(workspace)
-        if previous == fingerprint:
+        previous_state = read_sync_state(workspace) or {}
+        previous_fingerprint = previous_state.get("fingerprint")
+        previous_repo_url = normalize_repo_url(previous_state.get("repo_url", ""))
+        previous_branch = previous_state.get("branch", "")
+        current_repo_url = normalize_repo_url(repo_url)
+        if (
+            previous_fingerprint == fingerprint
+            and previous_repo_url == current_repo_url
+            and previous_branch == branch
+        ):
             print("Новых изменений нет. Экспорт в зеркало не требуется.")
             return 0
 
@@ -987,7 +1003,7 @@ def main() -> int:
     git_commit_and_push(repo_dir, branch, args.message, do_push=not args.no_push)
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
-    write_sync_state(workspace, fingerprint, head)
+    write_sync_state(workspace, fingerprint, head, repo_url, branch)
     print(f"Экспорт в зеркало завершен. Локальный репозиторий: {repo_dir}")
     print(f"Текущий коммит: {head}")
     if args.no_push:
