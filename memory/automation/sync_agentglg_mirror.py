@@ -97,11 +97,11 @@ def memory_dir_has_required_files(path: Path) -> bool:
 
 def resolve_source_context(workspace: Path) -> tuple[Path, Path, Path]:
     source_roots: list[Path] = []
-    mirror_checkout = detect_mirror_checkout(workspace)
-    if mirror_checkout:
-        source_roots.append(mirror_checkout)
     if workspace not in source_roots:
         source_roots.append(workspace)
+    mirror_checkout = detect_mirror_checkout(workspace)
+    if mirror_checkout and mirror_checkout not in source_roots:
+        source_roots.append(mirror_checkout)
 
     checked_contexts: list[str] = []
     for source_root in source_roots:
