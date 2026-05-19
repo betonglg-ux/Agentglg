@@ -91,8 +91,55 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text.rstrip() + "\n", encoding="utf-8")
 
 
+def memory_dir_has_required_files(path: Path) -> bool:
+    return path.exists() and all((path / name).exists() for name in REQUIRED_MEMORY_FILES)
+
+
+def resolve_source_context(workspace: Path) -> tuple[Path, Path, Path]:
+    source_roots: list[Path] = []
+    mirror_checkout = detect_mirror_checkout(workspace)
+    if mirror_checkout:
+        source_roots.append(mirror_checkout)
+    if workspace not in source_roots:
+        source_roots.append(workspace)
+
+    checked_contexts: list[str] = []
+    for source_root in source_roots:
+        instructions_path = source_root / "AGENTS.md"
+        agent_files_dir = source_root / "agent_files"
+        memory_candidates = [
+            source_root / "memory" / "memory",
+            source_root / "memory",
+        ]
+        checked_contexts.append(
+            f"{source_root} -> instructions={instructions_path}, agent_files={agent_files_dir}, memory={', '.join(str(path) for path in memory_candidates)}"
+        )
+
+        if not instructions_path.exists() or not agent_files_dir.exists():
+            continue
+
+        for candidate in memory_candidates:
+            if memory_dir_has_required_files(candidate):
+                return instructions_path, agent_files_dir, candidate
+
+    checked = "\n".join(f"- {item}" for item in checked_contexts)
+    raise RuntimeError(
+        "Не удалось определить актуальные инструкции, agent_files и локальную память.\n"
+        "Проверены контексты:\n"
+        f"{checked}"
+    )
+
+
 def workspace_uses_git(workspace: Path) -> bool:
     return (workspace / ".git").exists()
+
+
+def detect_mirror_checkout(workspace: Path) -> Path | None:
+    candidates = [workspace, workspace / "memory"]
+    for candidate in candidates:
+        if workspace_uses_git(candidate) and workspace_looks_like_mirror_checkout(candidate):
+            return candidate
+    return None
 
 
 def get_workspace_origin_url(workspace: Path) -> str:
@@ -134,6 +181,11 @@ def detect_repo_url(workspace: Path) -> str:
         return repo_url
     if repo_url and workspace_looks_like_mirror_checkout(workspace):
         return repo_url
+    mirror_checkout = detect_mirror_checkout(workspace)
+    if mirror_checkout and mirror_checkout != workspace:
+        repo_url = get_workspace_origin_url(mirror_checkout)
+        if repo_url:
+            return repo_url
     return DEFAULT_REPO_URL
 
 
@@ -163,6 +215,10 @@ def detect_branch(workspace: Path) -> str:
         if remote_head.startswith("origin/"):
             return remote_head.removeprefix("origin/")
 
+    mirror_checkout = detect_mirror_checkout(workspace)
+    if mirror_checkout and mirror_checkout != workspace:
+        return detect_branch(mirror_checkout)
+
     return DEFAULT_BRANCH
 
 
@@ -176,14 +232,13 @@ def normalize_significant_lines(text: str) -> list[str]:
     return lines
 
 
-def snapshot_memory_files(workspace: Path) -> Path | None:
-    memory_dir = workspace / "memory"
+def snapshot_memory_files(memory_dir: Path) -> Path | None:
     files_to_copy = [memory_dir / name for name in PROTECTED_MEMORY_FILES if (memory_dir / name).exists()]
     if not files_to_copy:
         return None
 
     stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
-    snapshot_dir = workspace / MEMORY_SNAPSHOTS_DIR_RELATIVE / stamp
+    snapshot_dir = memory_dir / "snapshots" / stamp
     snapshot_dir.mkdir(parents=True, exist_ok=True)
 
     for source in files_to_copy:
@@ -201,8 +256,7 @@ def snapshot_memory_files(workspace: Path) -> Path | None:
     return snapshot_dir
 
 
-def detect_memory_regressions(repo_root: Path, workspace: Path) -> list[str]:
-    memory_dir = workspace / "memory"
+def detect_memory_regressions(repo_root: Path, memory_dir: Path) -> list[str]:
     regressions: list[str] = []
 
     for file_name in PROTECTED_MEMORY_FILES:
@@ -638,103 +692,78 @@ def should_skip_workspace_relative(rel: Path) -> bool:
     return False
 
 
-def list_workspace_paths(workspace: Path) -> list[Path]:
-    paths: list[Path] = []
-    for path in sorted(workspace.rglob("*")):
-        rel = path.relative_to(workspace)
+def iter_relative_files(root: Path) -> list[Path]:
+    files: list[Path] = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root)
         if should_skip_workspace_relative(rel):
             continue
-        paths.append(path)
-    return paths
-
-
-def build_workspace_copy_ignore(workspace: Path):
-    def _ignore(dir_path: str, names: list[str]) -> set[str]:
-        current = Path(dir_path)
-        ignored: set[str] = set()
-        for name in names:
-            rel = (current / name).relative_to(workspace)
-            if should_skip_workspace_relative(rel):
-                ignored.add(name)
-        return ignored
-
-    return _ignore
-
-
-def iter_sync_inputs(workspace: Path) -> list[Path]:
-    files: list[Path] = []
-    for path in list_workspace_paths(workspace):
-        if path.is_file():
-            files.append(path)
+        files.append(rel)
     return files
 
 
-def compute_workspace_fingerprint(workspace: Path) -> str:
+def compute_workspace_fingerprint(instructions_path: Path, agent_files_dir: Path, memory_dir: Path) -> str:
     digest = hashlib.sha256()
-    for path in iter_sync_inputs(workspace):
-        rel = path.relative_to(workspace).as_posix().encode("utf-8")
-        digest.update(rel)
-        digest.update(b"\0")
-        digest.update(str(path.stat().st_size).encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
+    sources = [
+        ("AGENTS.md", instructions_path),
+        ("agent_files", agent_files_dir),
+        ("memory", memory_dir),
+    ]
+    for prefix, root in sources:
+        if root.is_file():
+            digest.update(prefix.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(str(root.stat().st_size).encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(root.read_bytes())
+            digest.update(b"\0")
+            continue
+        for rel in iter_relative_files(root):
+            path = root / rel
+            digest.update(f"{prefix}/{rel.as_posix()}".encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(str(path.stat().st_size).encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(path.read_bytes())
+            digest.update(b"\0")
     return digest.hexdigest()
 
 
-def read_sync_state(workspace: Path) -> dict[str, str] | None:
-    state_path = workspace / SYNC_STATE_FILE_RELATIVE
+def read_sync_state(workspace: Path) -> str | None:
+    state_path = workspace / "memory" / "agentglg-sync-state.txt"
     if not state_path.exists():
         return None
-    state: dict[str, str] = {}
     for line in state_path.read_text(encoding="utf-8").splitlines():
-        key, separator, value = line.partition("=")
-        if not separator:
-            continue
-        state[key.strip()] = value.strip()
-    return state or None
+        if line.startswith("fingerprint="):
+            value = line.partition("=")[2].strip()
+            return value or None
+    return None
 
 
-def write_sync_state(workspace: Path, fingerprint: str, commit_sha: str, repo_url: str, branch: str) -> None:
-    state_path = workspace / SYNC_STATE_FILE_RELATIVE
+def write_sync_state(workspace: Path, fingerprint: str, commit_sha: str) -> None:
+    state_path = workspace / "memory" / "agentglg-sync-state.txt"
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(
-        (
-            f"fingerprint={fingerprint}\n"
-            f"commit={commit_sha}\n"
-            f"repo_url={normalize_repo_url(repo_url)}\n"
-            f"branch={branch}\n"
-            f"updated_at={dt.datetime.now(dt.UTC).isoformat()}\n"
-        ),
+        f"fingerprint={fingerprint}\ncommit={commit_sha}\nupdated_at={dt.datetime.now(dt.UTC).isoformat()}\n",
         encoding="utf-8",
     )
 
 
-def prepare_repo(repo_root: Path, workspace: Path) -> None:
-    agent_files = workspace / "agent_files"
-    memory_dir = workspace / "memory"
+def prepare_repo(repo_root: Path, instructions_path: Path, agent_files: Path, memory_dir: Path) -> None:
     protocols_dir = agent_files / "protocols"
     agent_dev_src = agent_files / "agent-development"
     agent_dev_dst = repo_root / "agent-development"
 
-    ignore_workspace = build_workspace_copy_ignore(workspace)
-    tracked_top_level = set()
-    for child in sorted(workspace.iterdir()):
-        name = child.name
-        if name in WORKSPACE_EXCLUDE_TOP_LEVEL:
-            continue
-        tracked_top_level.add(name)
-        target = repo_root / name
-        if child.is_dir():
-            if target.exists():
-                shutil.rmtree(target)
-            shutil.copytree(
-                child,
-                target,
-                ignore=ignore_workspace,
-            )
-        else:
-            copy_file(child, target)
+    tracked_top_level = {"AGENTS.md", "agent_files", "memory"}
+    copy_file(instructions_path, repo_root / "AGENTS.md")
+    copy_tree(agent_files, repo_root / "agent_files", ignore=shutil.ignore_patterns(".git", ".arcade", "__pycache__"))
+    copy_tree(
+        memory_dir,
+        repo_root / "memory",
+        ignore=shutil.ignore_patterns(".git", ".arcade", "__pycache__", "agentglg-github-token.txt", "agentglg-sync-state.txt"),
+    )
 
     for child in repo_root.iterdir():
         name = child.name
@@ -764,7 +793,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
     refresh_agent_files_service_dir(
         target_dir=repo_root / "agent_files" / "agent-development",
         source_dir=agent_dev_src,
-        workspace=workspace,
+        workspace=instructions_path.parent,
         protocols_dir=protocols_dir,
         memory_dir=memory_dir,
         changelog_text=preserved_changelog,
@@ -803,7 +832,7 @@ def prepare_repo(repo_root: Path, workspace: Path) -> None:
         target = raw_memory_dir / source.relative_to(memory_dir)
         copy_file(source, target)
 
-    copy_file(workspace / "AGENTS.md", agent_dev_dst / "current-agent-instructions.md")
+    copy_file(instructions_path, agent_dev_dst / "current-agent-instructions.md")
     source_agent_summary = agent_dev_src / "agent-summary.md"
     if source_agent_summary.exists():
         copy_file(source_agent_summary, agent_dev_dst / "agent-summary.md")
@@ -919,7 +948,7 @@ def git_commit_and_push(repo_root: Path, branch: str, message: str, do_push: boo
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Экспорт текущей рабочей среды агента в GitHub-зеркало betonglg-ux/Agentglg")
-    parser.add_argument("--workspace", default="/workspace/memory", help="Корень рабочей среды агента")
+    parser.add_argument("--workspace", default="/workspace", help="Корень рабочей среды агента")
     parser.add_argument("--repo-dir", default="", help="Путь до локального клона репозитория")
     parser.add_argument("--repo-url", default="", help="URL GitHub-зеркала. По умолчанию используется betonglg-ux/Agentglg")
     parser.add_argument("--branch", default="", help="Ветка для экспорта. По умолчанию используется main")
@@ -941,22 +970,16 @@ def main() -> int:
         print(f"Не найден workspace: {workspace}", file=sys.stderr)
         return 1
 
+    instructions_path, agent_files_dir, memory_dir = resolve_source_context(workspace)
+
     origin_repo_url = get_workspace_origin_url(workspace)
     repo_url = args.repo_url or detect_repo_url(workspace)
     branch = args.branch or detect_branch(workspace)
 
-    fingerprint = compute_workspace_fingerprint(workspace)
+    fingerprint = compute_workspace_fingerprint(instructions_path, agent_files_dir, memory_dir)
     if args.only_if_changed:
-        previous_state = read_sync_state(workspace) or {}
-        previous_fingerprint = previous_state.get("fingerprint")
-        previous_repo_url = normalize_repo_url(previous_state.get("repo_url", ""))
-        previous_branch = previous_state.get("branch", "")
-        current_repo_url = normalize_repo_url(repo_url)
-        if (
-            previous_fingerprint == fingerprint
-            and previous_repo_url == current_repo_url
-            and previous_branch == branch
-        ):
+        previous = read_sync_state(workspace)
+        if previous == fingerprint:
             print("Новых изменений нет. Экспорт в зеркало не требуется.")
             return 0
 
@@ -974,7 +997,7 @@ def main() -> int:
         )
         return 1
 
-    missing_memory_files = [name for name in REQUIRED_MEMORY_FILES if not (workspace / "memory" / name).exists()]
+    missing_memory_files = [name for name in REQUIRED_MEMORY_FILES if not (memory_dir / name).exists()]
     if missing_memory_files:
         joined = ", ".join(missing_memory_files)
         raise RuntimeError(
@@ -983,10 +1006,10 @@ def main() -> int:
             "Экспорт работает только от текущей локальной памяти к зеркалу и не подставляет старые копии из служебных файлов."
         )
 
-    snapshot_dir = snapshot_memory_files(workspace)
+    snapshot_dir = snapshot_memory_files(memory_dir)
     repo_dir = Path(args.repo_dir).resolve() if args.repo_dir else Path(tempfile.gettempdir()) / "agentglg-mirror-repo"
     clone_or_update_repo(repo_dir, branch, repo_url, workspace)
-    regressions = detect_memory_regressions(repo_dir, workspace)
+    regressions = detect_memory_regressions(repo_dir, memory_dir)
     if regressions and not args.allow_memory_overwrite:
         details = "\n".join(f"- {item}" for item in regressions)
         snapshot_hint = f"\nЗащитный снимок памяти сохранен в: {snapshot_dir}" if snapshot_dir else ""
@@ -997,13 +1020,13 @@ def main() -> int:
             "Не обновляйте локальную память автоматически из зеркала.\n"
             "Сначала вручную сравните локальную память, защитный снимок и подтвержденные пользователем правки, затем повторите запуск."
         )
-    prepare_repo(repo_dir, workspace)
+    prepare_repo(repo_dir, instructions_path, agent_files_dir, memory_dir)
     if git_has_changes(repo_dir):
         append_sync_changelog(repo_dir / "agent-development" / "CHANGELOG.md")
     git_commit_and_push(repo_dir, branch, args.message, do_push=not args.no_push)
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
-    write_sync_state(workspace, fingerprint, head, repo_url, branch)
+    write_sync_state(workspace, fingerprint, head)
     print(f"Экспорт в зеркало завершен. Локальный репозиторий: {repo_dir}")
     print(f"Текущий коммит: {head}")
     if args.no_push:
