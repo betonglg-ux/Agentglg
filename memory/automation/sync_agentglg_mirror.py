@@ -65,6 +65,14 @@ def run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subproce
     return result
 
 
+def paths_overlap(left: Path, right: Path) -> bool:
+    try:
+        common = os.path.commonpath([str(left.resolve()), str(right.resolve())])
+    except ValueError:
+        return False
+    return common in {str(left.resolve()), str(right.resolve())}
+
+
 def ensure_clean_dir(path: Path) -> None:
     if path.exists():
         shutil.rmtree(path)
@@ -522,29 +530,21 @@ def refresh_agent_files_service_dir(
     memory_dir: Path,
     changelog_text: str | None,
 ) -> None:
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
-
-    for file_name in ["github-export-bundle.md", "github-mirror-manifest.md", "recovery-plan.md"]:
-        source_path = source_dir / file_name
-        target_path = target_dir / file_name
-        if source_path.resolve() == target_path.resolve():
-            continue
-        copy_file(source_path, target_path)
 
     if changelog_text is not None:
         write_text(target_dir / "CHANGELOG.md", changelog_text)
     else:
-        source_path = source_dir / "CHANGELOG.md"
-        target_path = target_dir / "CHANGELOG.md"
-        if source_path.resolve() != target_path.resolve():
-            copy_file(source_path, target_path)
+        source_changelog = source_dir / "CHANGELOG.md"
+        if source_changelog.exists():
+            copy_file(source_changelog, target_dir / "CHANGELOG.md")
 
-    copy_file(workspace / "AGENTS.md", target_dir / "current-agent-instructions.md")
-    source_agent_summary = source_dir / "agent-summary.md"
-    if source_agent_summary.exists():
-        copy_file(source_agent_summary, target_dir / "agent-summary.md")
-    else:
-        write_text(target_dir / "agent-summary.md", build_agent_summary(protocols_dir))
+    for file_name in ["agent-summary.md", "current-agent-instructions.md", "github-export-bundle.md", "recovery-plan.md"]:
+        source = source_dir / file_name
+        if source.exists():
+            copy_file(source, target_dir / file_name)
 
     memory_exports_dir = target_dir / "memory-exports"
     memory_exports_dir.mkdir(parents=True, exist_ok=True)
@@ -553,6 +553,14 @@ def refresh_agent_files_service_dir(
         copy_file(source_memory_exports_readme, memory_exports_dir / "README.md")
     else:
         write_text(memory_exports_dir / "README.md", build_memory_export_readme())
+
+    write_text(memory_exports_dir / "memory-index.md", build_memory_index(memory_dir))
+    raw_memory_dir = memory_exports_dir / "raw-memory"
+    raw_memory_dir.mkdir(parents=True, exist_ok=True)
+    for source in list_memory_markdown_files(memory_dir):
+        target = raw_memory_dir / source.relative_to(memory_dir)
+        copy_file(source, target)
+
     export_map = {
         "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
         "missed-findings-log.md": "missed-findings-export.md",
@@ -1008,6 +1016,13 @@ def main() -> int:
 
     snapshot_dir = snapshot_memory_files(memory_dir)
     repo_dir = Path(args.repo_dir).resolve() if args.repo_dir else Path(tempfile.gettempdir()) / "agentglg-mirror-repo"
+    if any(paths_overlap(repo_dir, source_path) for source_path in (instructions_path, agent_files_dir, memory_dir)):
+        raise RuntimeError(
+            "Экспорт остановлен: локальный checkout зеркала нельзя использовать как целевую папку экспорта, "
+            "если он пересекается с текущими исходными файлами агента.\n"
+            f"Выбранный repo-dir: {repo_dir}\n"
+            "Укажите отдельную временную папку или не задавайте --repo-dir, чтобы использовать стандартный временный клон."
+        )
     clone_or_update_repo(repo_dir, branch, repo_url, workspace)
     regressions = detect_memory_regressions(repo_dir, memory_dir)
     if regressions and not args.allow_memory_overwrite:
