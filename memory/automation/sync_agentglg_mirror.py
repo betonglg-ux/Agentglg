@@ -138,6 +138,18 @@ def resolve_source_context(workspace: Path) -> tuple[Path, Path, Path]:
     )
 
 
+def resolve_agent_development_source(workspace: Path, agent_files_dir: Path) -> Path:
+    candidates = [
+        workspace / "memory" / "agent-development",
+        workspace / "agent-development",
+        agent_files_dir / "agent-development",
+    ]
+    for candidate in candidates:
+        if candidate.exists() and candidate.is_dir():
+            return candidate
+    return agent_files_dir / "agent-development"
+
+
 def workspace_uses_git(workspace: Path) -> bool:
     return (workspace / ".git").exists()
 
@@ -417,7 +429,7 @@ def build_agent_summary(protocols_dir: Path) -> str:
         "",
         "Основные источники истины:",
         "- инструкции агента из `AGENTS.md`;",
-        "- навык `glavlab-protocol-review`;",
+        "- навык `glavlab-protocol-review` ;",
         "- Excel-шаблоны и связанные файлы из `agent_files/protocols/`;",
         "- память агента из папки `memory/`.",
         "",
@@ -433,7 +445,7 @@ def build_agent_summary(protocols_dir: Path) -> str:
             "",
             "Что нужно воспроизводить в будущем:",
             "- инструкции агента;",
-            "- структуру `agent-development/`;",
+            "- структуру `agent-development/` ;",
             "- папку `protocols/` с шаблонами;",
             "- память и экспорт подтвержденных правил.",
         ]
@@ -494,7 +506,7 @@ def build_skills_index_readme() -> str:
             "",
             "При восстановлении похожего агента нужно перенести не только само упоминание навыка, но и связанный с ним контекст:",
             "",
-            "1. сам навык `glavlab-protocol-review`;",
+            "1. сам навык `glavlab-protocol-review` ;",
             "2. инструкции агента, которые ссылаются на этот навык как на основной регламент;",
             "3. шаблоны и файлы из папки `protocols/`, с которыми навык работает совместно;",
             "4. накопленные паттерны ошибок и заметки по шаблонам, если они влияют на применение навыка;",
@@ -530,21 +542,29 @@ def refresh_agent_files_service_dir(
     memory_dir: Path,
     changelog_text: str | None,
 ) -> None:
-    if target_dir.exists():
-        shutil.rmtree(target_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
+
+    for file_name in ["github-export-bundle.md", "github-mirror-manifest.md", "recovery-plan.md"]:
+        source_path = source_dir / file_name
+        target_path = target_dir / file_name
+        if source_path.resolve() == target_path.resolve():
+            continue
+        copy_file(source_path, target_path)
 
     if changelog_text is not None:
         write_text(target_dir / "CHANGELOG.md", changelog_text)
     else:
-        source_changelog = source_dir / "CHANGELOG.md"
-        if source_changelog.exists():
-            copy_file(source_changelog, target_dir / "CHANGELOG.md")
+        source_path = source_dir / "CHANGELOG.md"
+        target_path = target_dir / "CHANGELOG.md"
+        if source_path.resolve() != target_path.resolve():
+            copy_file(source_path, target_path)
 
-    for file_name in ["agent-summary.md", "current-agent-instructions.md", "github-export-bundle.md", "recovery-plan.md"]:
-        source = source_dir / file_name
-        if source.exists():
-            copy_file(source, target_dir / file_name)
+    copy_file(workspace / "AGENTS.md", target_dir / "current-agent-instructions.md")
+    source_agent_summary = source_dir / "agent-summary.md"
+    if source_agent_summary.exists():
+        copy_file(source_agent_summary, target_dir / "agent-summary.md")
+    else:
+        write_text(target_dir / "agent-summary.md", build_agent_summary(protocols_dir))
 
     memory_exports_dir = target_dir / "memory-exports"
     memory_exports_dir.mkdir(parents=True, exist_ok=True)
@@ -553,14 +573,6 @@ def refresh_agent_files_service_dir(
         copy_file(source_memory_exports_readme, memory_exports_dir / "README.md")
     else:
         write_text(memory_exports_dir / "README.md", build_memory_export_readme())
-
-    write_text(memory_exports_dir / "memory-index.md", build_memory_index(memory_dir))
-    raw_memory_dir = memory_exports_dir / "raw-memory"
-    raw_memory_dir.mkdir(parents=True, exist_ok=True)
-    for source in list_memory_markdown_files(memory_dir):
-        target = raw_memory_dir / source.relative_to(memory_dir)
-        copy_file(source, target)
-
     export_map = {
         "confirmed-error-patterns.md": "confirmed-error-patterns-export.md",
         "missed-findings-log.md": "missed-findings-export.md",
@@ -712,12 +724,18 @@ def iter_relative_files(root: Path) -> list[Path]:
     return files
 
 
-def compute_workspace_fingerprint(instructions_path: Path, agent_files_dir: Path, memory_dir: Path) -> str:
+def compute_workspace_fingerprint(
+    instructions_path: Path,
+    agent_files_dir: Path,
+    memory_dir: Path,
+    agent_development_dir: Path,
+) -> str:
     digest = hashlib.sha256()
     sources = [
         ("AGENTS.md", instructions_path),
         ("agent_files", agent_files_dir),
         ("memory", memory_dir),
+        ("agent-development", agent_development_dir),
     ]
     for prefix, root in sources:
         if root.is_file():
@@ -759,9 +777,15 @@ def write_sync_state(workspace: Path, fingerprint: str, commit_sha: str) -> None
     )
 
 
-def prepare_repo(repo_root: Path, instructions_path: Path, agent_files: Path, memory_dir: Path) -> None:
+def prepare_repo(
+    repo_root: Path,
+    instructions_path: Path,
+    agent_files: Path,
+    memory_dir: Path,
+    agent_development_dir: Path,
+) -> None:
     protocols_dir = agent_files / "protocols"
-    agent_dev_src = agent_files / "agent-development"
+    agent_dev_src = agent_development_dir
     agent_dev_dst = repo_root / "agent-development"
 
     tracked_top_level = {"AGENTS.md", "agent_files", "memory"}
@@ -984,7 +1008,14 @@ def main() -> int:
     repo_url = args.repo_url or detect_repo_url(workspace)
     branch = args.branch or detect_branch(workspace)
 
-    fingerprint = compute_workspace_fingerprint(instructions_path, agent_files_dir, memory_dir)
+    agent_development_dir = resolve_agent_development_source(workspace, agent_files_dir)
+
+    fingerprint = compute_workspace_fingerprint(
+        instructions_path,
+        agent_files_dir,
+        memory_dir,
+        agent_development_dir,
+    )
     if args.only_if_changed:
         previous = read_sync_state(workspace)
         if previous == fingerprint:
@@ -1035,9 +1066,9 @@ def main() -> int:
             "Не обновляйте локальную память автоматически из зеркала.\n"
             "Сначала вручную сравните локальную память, защитный снимок и подтвержденные пользователем правки, затем повторите запуск."
         )
-    prepare_repo(repo_dir, instructions_path, agent_files_dir, memory_dir)
+    prepare_repo(repo_dir, instructions_path, agent_files_dir, memory_dir, agent_development_dir)
     if git_has_changes(repo_dir):
-        append_sync_changelog(repo_dir / "agent-development" / "CHANGELOG.md")
+        append_sync_changelog(repo_dir / "agent-development/CHANGELOG.md")
     git_commit_and_push(repo_dir, branch, args.message, do_push=not args.no_push)
 
     head = run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_dir).stdout.strip()
