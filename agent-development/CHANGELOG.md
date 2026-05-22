@@ -4,6 +4,20 @@
 
 Этот файл фиксирует значимые изменения в развитии агента, его экспортного пакета и материалов для будущего клонирования.
 
+## 2026-05-22
+
+### Изменено
+- повторно проверена текущая рабочая среда агента перед синхронизацией зеркала: локальная память в `/workspace/memory/memory/` подтверждена как первичный источник истины;
+- отдельно сверены рабочие memory-файлы, raw-memory-дубли, подтверждённые пользовательские правки и наличие защитных снимков; отдельного каталога `memory/snapshots/` в текущей среде не обнаружено;
+- подтверждено, что `AGENTS.md`, `/workspace/memory/AGENTS.md` и `agent-development/current-agent-instructions.md` уже соответствуют актуальной рабочей среде и не требуют обратной подмены данными зеркала;
+- выявлено реальное отставание только у вложенной копии `agent_files/` внутри зеркала: в `agent_files/agent-development/` оставались лишние служебные файлы и устаревшие версии `CHANGELOG.md` и `files-index/templates-index.md`, которых нет в живой папке `/workspace/agent_files/`;
+- вложенная копия `agent_files/` выровнена строго по текущей рабочей среде без переписывания локальной памяти или основных зеркальных memory-файлов.
+
+### Примечания
+- содержательное расхождение между рабочей памятью, её raw-memory-дублями и подтверждёнными пользовательскими правками не подтвердилось;
+- различие между `memory/confirmed-error-patterns.md` и `agent-development/confirmed-error-patterns.md` по-прежнему ограничивается завершающим переводом строки и не потребовало содержательной перезаписи;
+- синхронизация выполняется только в сторону `текущий агент -> GitHub-зеркало`.
+
 ## 2026-05-21
 
 ### Изменено
@@ -179,7 +193,7 @@
 - в `missed-findings-export.md` зафиксированы подтверждённые случаи пропущенных замечаний и контрольные точки, которые нельзя пропускать в будущем;
 - в `confirmed-error-patterns-export.md` зафиксированы подтверждённые паттерны ошибок, исключения и правила повышенного внимания;
 - синхронизирован `agent-development/current-agent-instructions.md` с текущими реальными инструкциями агента;
-- обновлены сводные файлы полного зеркала: `agent-development/agent-summary.md`, `agent-development/github-export-bundle.md`, `agent-development/memory-exports/README.md` и `agent-development/github-mirror-manifest.md`;
+- обновлены сводные файлы полного зеркала: `agent-development/agent-summary.md`, `agent-development/github-export-bundle.md`, `agent-development/github-mirror-manifest.md`, `agent-development/memory-exports/README.md` и `agent-development/github-export-bundle.md`;
 - обновлены файловые индексы `agent-development/files-index/attached-files-index.md` и `agent-development/files-index/templates-index.md` по текущему видимому дереву файлов агента;
 - создана симметричная структура между рабочими файлами памяти агента и зеркальными файлами в `agent-development/`: добавлены `agent-development/confirmed-error-patterns.md`, `agent-development/missed-findings-log.md`, `agent-development/template-notes.md`, `agent-development/user-confirmed-corrections.md`, `agent-development/user-preferences.md`, `agent-development/slack-user-corrections.md` и `agent-development/memory-save-log.md`;
 - инструкции агента дополнительно уточнены так, чтобы симметрия `Memory <-> agent-development/` была закреплена как обязательный стандарт сопровождения;
