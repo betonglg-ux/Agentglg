@@ -15,6 +15,10 @@
 - `agent-development/memory-exports/memory-save-log-export.md`
 - `agent-development/memory-exports/missed-findings-export.md`
 - `agent-development/memory-exports/raw-memory/automation/README.md`
+- `agent-development/memory-exports/raw-memory/automation/export_agentglg_mirror.sh`
+- `agent-development/memory-exports/raw-memory/automation/run_agentglg_sync.sh`
+- `agent-development/memory-exports/raw-memory/automation/setup_github_auth.sh`
+- `agent-development/memory-exports/raw-memory/automation/sync_agentglg_mirror.py`
 - `agent-development/memory-exports/raw-memory/confirmed-error-patterns.md`
 - `agent-development/memory-exports/raw-memory/memory-save-log.md`
 - `agent-development/memory-exports/raw-memory/missed-findings-log.md`
