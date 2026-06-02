@@ -8,7 +8,6 @@
 - `agent-development/confirmed-error-patterns.md`
 - `agent-development/current-agent-instructions.md`
 - `agent-development/files-index/README.md`
-- `agent-development/files-index/templates-index.md`
 - `agent-development/memory-exports/README.md`
 - `agent-development/memory-exports/confirmed-error-patterns-export.md`
 - `agent-development/memory-exports/memory-index.md`
