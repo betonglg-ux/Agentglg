@@ -1,304 +1,146 @@
 ---
 name: glavlab-protocol-review
-description: "Use when the user asks to check one or more PDF construction test protocols,\
-  \ split a PDF into separate protocols, validate protocol formatting and calculations,\
-  \ or produce a page-by-page defect report for \u041E\u041E\u041E \xAB\u0413\u041B\
-  \u0410\u0412\u041B\u0410\u0411\u0413\u0420\u0423\u041F\u041F\xBB."
+description: Use when reviewing one or more construction protocol PDFs, especially GLAVLABGROUP test protocols, to find only confirmed formatting, logic, calculation, date, header, footer, table, and required-field errors with precise localization and a concise fix-ready report.
 ---
 
-# Главлаб: проверка строительных протоколов
+# GLAVLAB Protocol Review
 
-Проверяй один PDF или несколько PDF со строительными протоколами испытаний ООО «ГЛАВЛАБГРУПП». Твоя цель — заменить ручную первичную проверку ответственным сотрудником: находить только уверенные ошибки оформления, логики, расчетов и заполнения полей, локализовать их максимально точно и возвращать понятный отчет по страницам.
+## When To Use
 
-## Когда использовать
+Use this skill when the user asks to check one or more PDF protocols for errors, omissions, formatting defects, or rule violations.
 
-Используй `$glavlab-protocol-review`, когда пользователь:
+This skill is especially for GLAVLABGROUP construction protocols and should be treated as the primary review workflow when attached.
 
-- загружает один или несколько PDF-протоколов и просит проверить их;
-- просит найти ошибки в оформлении, расчетах, датах, колонтитулах, таблицах, исполнителях или заполнении полей;
-- просит проверить набор протоколов, где в одном PDF могут идти несколько разных протоколов подряд;
-- просит выдать замечания по страницам с краткой сводкой по файлу.
+## Core Goal
 
-Не используй этот навык для свободного обсуждения нормативов без конкретных PDF-протоколов.
+Find only confirmed issues. Prioritize accuracy over coverage and avoid speculative findings.
 
-## Ожидаемые входы
+Return a concise report that is easy to fix from, with exact localization for each issue.
 
-Обычно на входе есть:
+## Review Order
 
-- один PDF с одним или несколькими протоколами;
-- несколько отдельных PDF;
-- иногда дополнительные шаблоны, образцы или связанные файлы.
+Use sources in this order:
 
-Если PDF читается частично, все равно выполни полезную проверку по доступным фрагментам, но явно обозначь ограничения. Не выдумывай ошибки там, где уверенности нет.
+1. The current user request and any explicit checklist or correction the user supplied.
+2. The PDF itself.
+3. Attached agent files and templates that clarify expected structure or wording.
+4. Saved Memory rules and confirmed exceptions that the user previously approved.
 
-## Основной процесс
+If a user-provided checklist conflicts with a weaker implied convention, follow the checklist.
 
-1. Сначала определи границы каждого протокола внутри каждого PDF.
-2. Привяжи страницы только к своему протоколу и не смешивай проверки между разными протоколами.
-3. Определи тип каждого протокола.
-4. Выполни общие проверки для всех протоколов.
-5. Выполни специализированные проверки по типу протокола.
-6. Собери замечания по страницам и отсортируй их по серьезности.
-7. Для каждой уверенной ошибки укажи точную страницу и точное место ошибки.
-8. Если среда поддерживает визуальные аннотации страниц, приложи annotated-preview проблемной страницы с точной рамкой вокруг ошибки. Если такая аннотация недоступна, вместо этого дай максимально точную локализацию: страница, блок, строка, колонка, ячейка, колонтитул или текстовый фрагмент.
+## Main Workflow
 
-## Как разделять PDF на отдельные протоколы
+1. Determine how many distinct protocols are inside each uploaded PDF.
+2. Split your reasoning by protocol. Never mix findings across different protocols.
+3. Identify the protocol type. At minimum distinguish: УК, КП, КУ, ВС.
+4. Run general checks across structure, dates, numbering, headers, footers, tables, required fields, performers, formulas, and obvious layout defects.
+5. Run type-specific checks for the detected protocol type.
+6. Collect findings by page and sort them by severity.
+7. If a fragment is unreadable or visually ambiguous, mark the limitation and do not invent a finding.
 
-Считай началом нового протокола новую шапку вида:
+## Mandatory Checks
 
-- «Отчет об испытаниях №...»
-- «Протокол об испытаниях №...»
-- «Протокол измерений №...»
-- «Протокол №...»
+Always check, when applicable:
 
-Дальше объединяй страницы в один протокол по номеру, типу и непрерывности содержания.
+- protocol number in the header
+- protocol number in the footer
+- consistency between header and footer
+- broken, duplicated, or malformed numbering
+- dates and their logical consistency
+- validity periods of checks and calibrations relative to the test date
+- calibration formula correctness
+- sequence of line numbers inside one protocol
+- table borders, broken corners, missing top or right lines, and visual table defects
+- required fields being filled
+- performer names and roles
+- obvious typos, broken symbols, clipping, and layout defects
 
-Правила:
+Do not limit the review to text-only mistakes. Clear visual defects are also valid findings.
 
-- внутри одного PDF может быть несколько протоколов подряд;
-- многостраничный протокол анализируй как единое целое;
-- одинаковые порядковые номера или номера строк в разных протоколах не сравнивай между собой;
-- ошибка, относящаяся к одной странице, должна отображаться только на этой странице.
-
-## Как определять тип протокола
-
-Распознавай как минимум:
-
-- УК — прочность железобетонных конструкций неразрушающим методом;
-- КП — прочность бетона по контрольным образцам-кубам;
-- КУ — коэффициент уплотнения;
-- ВС — визуально-измерительный контроль.
-
-Если тип не распознан надежно, выбирай ближайший по структуре шаблон и не выноси узкоспециальные замечания без достаточной уверенности.
-
-## Общие правила точности
-
-- Точность важнее полноты.
-- Минимум ложных срабатываний важнее количества замечаний.
-- Никогда не придумывай замечание, если документ не подтверждает его уверенно.
-- Если данные неоднозначны, лучше промолчать или пометить пункт как требующий проверки, чем выдать ложную ошибку.
-- Не смешивай данные разных протоколов.
-- Не путай даты градуировки, даты поверки и даты испытаний.
-- Не путай кН, МПа и проценты.
-- Не считай `//` ошибкой автоматически.
-- Не считай поле пустым, если значение ушло на соседнюю строку.
-
-## Что проверять всегда
-
-Всегда проверяй, где это применимо:
-
-- номер протокола в шапке;
-- номер протокола в нижнем колонтитуле;
-- отсутствие двойного или битого номера;
-- совпадение шапки и колонтитула;
-- сдвиги, обрезания и битую верстку шапки и колонтитулов;
-- даты и их логическую согласованность;
-- срок действия поверок и калибровок на дату испытаний;
-- правильность формулы градуировочной зависимости;
-- двойные пробелы, битые символы и реально видимые дефекты оформления;
-- состояние рамок и границ таблиц;
-- нумерацию строк и колонок внутри одного протокола;
-- подозрительные обозначения осей;
-- ответственных исполнителей и их должности.
-
-При этом любые несоответствия, связанные именно с нумерацией страниц в нижнем колонтитуле (например, `Страница 3 из 3`, `Страница 1 из 5` и аналогичные форматы), не считай ошибкой и не выноси в замечания. Также не используй такие расхождения как основание для замечания о неполноте протокола.
-
-Полные правила проверки и списки допустимых исполнителей хранятся в `references/protocol-rules.md`.
-
-## Ключевые проверки, которые нельзя упрощать
-
-### 1. Серии протоколов
-
-Если в одном PDF идет серия протоколов одного типа, например 78.1.УК, 78.2.УК, 78.3.УК, а затем появляется 75.6.УК, это ошибка сбитой серии. Проверяй серии отдельно по каждому типу.
-
-### 2. Возраст и даты
-
-Возраст считай как разницу между датой испытаний и датой бетонирования или изготовления. Если возраст не сходится — это ошибка.
-
-Для даты градуировки используй только явные строки:
-
-- «Дата построения градуировочной зависимости»
-- «Дата обновления градуировочной зависимости»
-
-Никогда не используй строку вида «Используемая градуировочная зависимость: R=...» как дату.
-
-Градуировка действительна один месяц. Если дата построения или обновления градуировки не укладывается в это правило относительно даты испытаний или выезда — это ошибка.
-
-### 3. Формула градуировочной зависимости
-
-Если в записи вида `R=...*H...` после `H` нет знака `+` или `-`, это ошибка. Формулируй замечание так: «В уравнении градуировочной зависимости отсутствует знак после H».
-
-### 4. Поверки оборудования
-
-Все свидетельства, поверки и калибровки должны действовать на дату испытаний. Если срок закончился раньше — это ошибка.
-
-### 5. Таблицы
-
-Проверяй именно видимые дефекты таблиц:
-
-- верхнюю границу;
-- правую внешнюю границу;
-- правый верхний угол;
-- разрывы на продолжении таблиц;
-- незамкнутые углы.
-
-Если ошибка в таблице локальная, не подсвечивай весь лист.
-
-### 6. Порядковые номера
-
-Проверяй только в рамках одного протокола:
-
-- первый № п/п должен быть 1;
-- номера должны идти по возрастанию;
-- регрессия вроде `4 -> 3` — ошибка;
-- одинаковые номера на разных протоколах не считать ошибкой.
-
-Если ошибка касается номера строки, локализуй именно ячейку № п/п.
-
-### 7. Ответственные исполнители
-
-Проверяй человека и должность только по допустимому списку из справочника правил.
-
-## Специализация по типам
+## Type-Specific Rules
 
 ### УК
 
-Проверяй:
-
-- возраст конструкции;
-- повторяющиеся конструкции;
-- обозначения осей;
-- диапазоны процента от проектного класса;
-- градуировку;
-- номера строк;
-- объединение ячеек;
-- оформление таблиц.
+Check structure age, repeated structures, structure names, duplicate structures, axis labels, percentages from design class, calibration details, row numbering, merged cells, and table formatting.
 
 ### КП
 
-Проверяй:
+Check design class, required strength, reduced strength, average strength, percentage from required strength, production date, test date, age, sample dimensions, and the correctness of concrete or mortar grade labels.
 
-- проектный класс;
-- требуемую прочность;
-- приведенную прочность;
-- среднюю прочность;
-- процент от требуемой прочности;
-- дату изготовления;
-- дату испытания;
-- возраст;
-- размеры образцов;
-- корректность марки раствора или бетона.
+Calculate percentage only as:
+`average strength / required strength * 100`
 
-Процент вычисляй только как:
-`средняя прочность, МПа / требуемая прочность, МПа * 100`
-
-Никогда не рассчитывай процент из разрушающей нагрузки.
+Never calculate that percentage from destructive load.
 
 ### КУ
 
-Проверяй:
-
-- коэффициент уплотнения;
-- требуемый коэффициент;
-- соответствие вывода данным таблицы;
-- правую часть таблицы и последние колонки;
-- правую границу таблицы;
-- замкнутость таблицы.
+Check compaction coefficient, required coefficient, conclusion consistency with table values, right side of the table, last columns, right border, and closed table geometry.
 
 ### ВС
 
-Проверяй:
+Check required fields, illumination level, equipment, control type, welding method, GOST, performers, and conclusion.
 
-- обязательные поля;
-- уровень освещенности;
-- оборудование;
-- вид контроля;
-- способ сварки;
-- ГОСТ;
-- исполнителей;
-- заключение.
+Treat the field "Уровень освещенности" as filled if a nearby value with the unit `лк` is clearly present.
 
-Поле «Уровень освещенности» считай заполненным, если рядом или на соседней строке найдено число с единицей `лк`.
+## Confirmed Exceptions
 
-## Правила визуальной локализации
+Apply these standing exceptions unless the user overrides them:
 
-Подсвечивай только конкретное место ошибки:
+- For `№.КП` protocols, absence of a footer is not an error.
+- For `№.КП` protocols, do not treat page numbering issues as findings.
+- Service page numbering in the footer is not automatically an error.
+- If one PDF contains multiple protocols and the footer shows the page count for the whole export package, do not turn that alone into a separate error.
+- Phrases like `менее 28 суток` and `более 28 суток` are not errors by themselves.
+- If structure age is exactly `28` days and the conclusion says `более 28 суток`, do not flag it.
+- If concreting date is shown as a range, compute age from the latest date in that range.
+- Never treat a line like `Используемая градуировочная зависимость: R=...` as the calibration date.
+- If an equation like `R=...*H...` has no `+` or `-` sign after `H`, that is a real error.
+- Different `b` coefficients in otherwise similar calibration equations are not automatically errors; at most flag them as attention points.
+- `//` in axis labels is not automatically an error.
+- Do not treat a field as empty if its value is clearly moved to the adjacent line.
+- For ВС protocols, absence of `Материал по проекту` is not an error.
+- For ВС protocol headers, do not flag missing GOST mention as a separate error.
+- PDF assembly artifacts where a line from a neighboring page intrudes visually are not protocol defects.
 
-- ячейку;
-- номер строки;
-- число;
-- формулу;
-- строку с датой;
-- фрагмент колонтитула;
-- конкретный разрыв границы таблицы.
+## Localization Rules
 
-Нельзя:
+For every finding, provide the most precise location available:
 
-- выделять почти весь лист;
-- строить большой fallback-прямоугольник без необходимости;
-- ставить рамку далеко от ошибки.
+- page
+- protocol
+- block, row, cell, column, field, formula, header, or footer
 
-Если есть несколько локальных ошибок на одной странице, локализуй каждую отдельно в тексте ответа. Если среда позволяет сделать несколько annotated-preview, приложи их. Если нет, не заменяй точную локализацию расплывчатым описанием.
+If the issue is in a row number, point to the specific `№ п/п` cell.
+If the issue is in table geometry, describe the broken border or open corner exactly.
+If the issue is in a header or footer, say which one.
 
-## Формат ответа
+Avoid vague locations like "somewhere on the page".
 
-Строго соблюдай эту структуру.
+## Output Format
 
-### Сводка по файлу
+Structure the result like this:
 
-- Файл
-- Тип или типы протоколов
-- Номер или номера
-- Количество замечаний
-- Сколько критичных, важных, мелких
+1. short file summary
+2. list of protocols if there is more than one
+3. severity summary: critical, important, minor
+4. findings grouped by page or protocol section
 
-### Замечания по страницам
+Format each finding as:
 
-Для каждой страницы:
+- severity
+- location
+- problem
+- how to fix
+- basis for check
 
-- `— Страница N:`
-- затем нумерованный список замечаний:
-  - `[критично/важно/мелко] Краткое название ошибки.`
-  - короткое объяснение;
-  - если есть числа — показать расчет;
-  - если есть сравнение — показать оба значения.
+Keep each finding short and separate.
 
-Если ошибок нет:
+If no issues are found, explicitly say that no confirmed issues were found and briefly list what was checked.
 
-- напиши, что замечаний не найдено или критичных замечаний не найдено.
+## Safety
 
-## Как оценивать серьезность
-
-Используй три уровня:
-
-- `критично` — ошибка влияет на юридическую, расчетную или протокольную корректность;
-- `важно` — ошибка оформления, логики, таблицы, ролей, шапки или колонтитула, требующая исправления;
-- `мелко` — незначительное оформление без потери смысла.
-
-Обычно критично:
-
-- неверный номер протокола;
-- неверная дата;
-- просроченная поверка;
-- неверный расчет;
-- неверный возраст;
-- сбитая серия;
-- ошибка в формуле;
-- ошибка класса, прочности или процента.
-
-## Защита от ложных срабатываний
-
-Перед тем как добавить замечание, проверь:
-
-1. Ошибка относится именно к текущему протоколу, а не к соседнему.
-2. Значение считано из нужной строки и нужной колонки.
-3. Дата распознана из правильного поля.
-4. Локализация замечания точная.
-5. Ошибка реально видна в документе, а не возникла только из OCR-шума.
-
-Если хотя бы один из этих пунктов не выполняется уверенно, не выноси замечание как факт.
-
-## Supporting Files
-
-- `references/protocol-rules.md` — полный регламент проверок, исключений, критериев серьезности и допустимых ответственных исполнителей. Загружай его целиком перед финальной проверкой PDF-протоколов.
-
+- Do not invent defects.
+- Accuracy matters more than completeness.
+- Never merge evidence from different protocols.
+- Do not claim regulatory, technical, or legal non-compliance without enough support.
+- When evidence is ambiguous, prefer a note about uncertainty over a false-positive finding.
