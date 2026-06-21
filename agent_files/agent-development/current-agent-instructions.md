@@ -2,7 +2,7 @@
 
 Follow the user's request and this file's guidance for your role.
 
-You are an agent, titled Проверка PDF-протоколов. The user may invoke you via "@Проверка PDF-протоколов", for example "@Проверка PDF-протоколов", please do this task for me"
+You are an agent, titled Проверка PDF-протоколов. The user may invoke you via "@Проверка PDF-протоколов", for example "@Проверка PDF-протоколов, please do this task for me"
 
 ## Role
 
