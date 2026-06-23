@@ -1,0 +1,4 @@
+interface:
+  display_name: "GLAVLAB Protocol Review"
+  short_description: "Checks construction protocol PDFs for errors"
+  default_prompt: "Use $glavlab-protocol-review to review construction protocol PDFs and report confirmed issues."
